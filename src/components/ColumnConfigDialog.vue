@@ -101,9 +101,16 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
-import { Plus, Minus, RefreshLeft, Check, Top, Bottom } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, watch, computed } from "vue";
+import {
+  Plus,
+  Minus,
+  RefreshLeft,
+  Check,
+  Top,
+  Bottom
+} from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox } from "element-plus";
 
 const props = defineProps({
   modelValue: {
@@ -114,31 +121,37 @@ const props = defineProps({
     type: Array,
     default: () => []
   }
-})
+});
 
-const emit = defineEmits(['update:modelValue', 'confirm'])
+const emit = defineEmits(["update:modelValue", "confirm"]);
 
 const visible = computed({
   get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val)
-})
+  set: (val) => emit("update:modelValue", val)
+});
 
-const tableData = ref([])
-const originalColumns = ref([])
+const tableData = ref([]);
+const originalColumns = ref([]);
 
 // 监听列配置变化
-watch(() => props.columns, (newColumns) => {
-  if (newColumns && newColumns.length > 0) {
-    originalColumns.value = JSON.parse(JSON.stringify(newColumns))
-    tableData.value = convertToTableData(JSON.parse(JSON.stringify(newColumns)))
-  }
-}, { immediate: true, deep: true })
+watch(
+  () => props.columns,
+  (newColumns) => {
+    if (newColumns && newColumns.length > 0) {
+      originalColumns.value = JSON.parse(JSON.stringify(newColumns));
+      tableData.value = convertToTableData(
+        JSON.parse(JSON.stringify(newColumns))
+      );
+    }
+  },
+  { immediate: true, deep: true }
+);
 
 // 转换为表格数据
-function convertToTableData(columns, level = 0, parentId = '') {
-  const result = []
+function convertToTableData(columns, level = 0, parentId = "") {
+  const result = [];
   columns.forEach((col, index) => {
-    const id = parentId ? `${parentId}-${index}` : `${index}`
+    const id = parentId ? `${parentId}-${index}` : `${index}`;
     const node = {
       id,
       label: col.label,
@@ -148,61 +161,61 @@ function convertToTableData(columns, level = 0, parentId = '') {
       width: col.width || 120,
       level,
       hasChildren: !!(col.children && col.children.length > 0)
-    }
+    };
 
     if (col.children && col.children.length > 0) {
-      node.children = convertToTableData(col.children, level + 1, id)
+      node.children = convertToTableData(col.children, level + 1, id);
     }
 
-    result.push(node)
-  })
-  return result
+    result.push(node);
+  });
+  return result;
 }
 
 // 复选框变化
 function handleVisibleChange(row) {
   if (row.children) {
-    setChildrenVisible(row.children, row.visible)
+    setChildrenVisible(row.children, row.visible);
   }
 }
 
 function setChildrenVisible(children, visible) {
-  children.forEach(child => {
-    child.visible = visible
+  children.forEach((child) => {
+    child.visible = visible;
     if (child.children) {
-      setChildrenVisible(child.children, visible)
+      setChildrenVisible(child.children, visible);
     }
-  })
+  });
 }
 
 // 全部展开
 function expandAll() {
   // Element Plus的table组件会自动处理
-  ElMessage.success('已展开所有节点')
+  ElMessage.success("已展开所有节点");
 }
 
 // 全部收起
 function collapseAll() {
-  ElMessage.success('已收起所有节点')
+  ElMessage.success("已收起所有节点");
 }
 
 // 上移
 function moveUp(row, index) {
   if (index > 0) {
-    const temp = tableData.value[index]
-    tableData.value[index] = tableData.value[index - 1]
-    tableData.value[index - 1] = temp
-    ElMessage.success('已上移')
+    const temp = tableData.value[index];
+    tableData.value[index] = tableData.value[index - 1];
+    tableData.value[index - 1] = temp;
+    ElMessage.success("已上移");
   }
 }
 
 // 下移
 function moveDown(row, index) {
   if (index < tableData.value.length - 1) {
-    const temp = tableData.value[index]
-    tableData.value[index] = tableData.value[index + 1]
-    tableData.value[index + 1] = temp
-    ElMessage.success('已下移')
+    const temp = tableData.value[index];
+    tableData.value[index] = tableData.value[index + 1];
+    tableData.value[index + 1] = temp;
+    ElMessage.success("已下移");
   }
 }
 
@@ -210,17 +223,19 @@ function moveDown(row, index) {
 async function handleReset() {
   try {
     await ElMessageBox.confirm(
-      '确定要重置所有列配置吗?这将恢复到初始状态。',
-      '重置确认',
+      "确定要重置所有列配置吗?这将恢复到初始状态。",
+      "重置确认",
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
       }
-    )
-    
-    tableData.value = convertToTableData(JSON.parse(JSON.stringify(originalColumns.value)))
-    ElMessage.success('已重置列配置')
+    );
+
+    tableData.value = convertToTableData(
+      JSON.parse(JSON.stringify(originalColumns.value))
+    );
+    ElMessage.success("已重置列配置");
   } catch (error) {
     // 用户取消
   }
@@ -228,33 +243,33 @@ async function handleReset() {
 
 // 转换回列配置
 function convertToColumns(tableData) {
-  return tableData.map(node => {
+  return tableData.map((node) => {
     const col = {
       label: node.label,
       visible: node.visible,
       width: node.width || 120
-    }
+    };
 
-    if (node.prop) col.prop = node.prop
-    if (node.key) col.key = node.key
+    if (node.prop) col.prop = node.prop;
+    if (node.key) col.key = node.key;
 
     if (node.children && node.children.length > 0) {
-      col.children = convertToColumns(node.children)
+      col.children = convertToColumns(node.children);
     }
 
-    return col
-  })
+    return col;
+  });
 }
 
 function handleConfirm() {
-  const newColumns = convertToColumns(tableData.value)
-  emit('confirm', newColumns)
-  visible.value = false
-  ElMessage.success('列配置已应用')
+  const newColumns = convertToColumns(tableData.value);
+  emit("confirm", newColumns);
+  visible.value = false;
+  ElMessage.success("列配置已应用");
 }
 
 function handleCancel() {
-  visible.value = false
+  visible.value = false;
 }
 </script>
 

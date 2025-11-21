@@ -2,108 +2,168 @@
   <el-dialog
     v-model="visible"
     title="导出配置"
-    width="800px"
+    width="950px"
     :close-on-click-modal="false"
+    @close="handleDialogClose"
   >
     <el-tabs v-model="activeTab">
-      <!-- 导出列配置 -->
-      <el-tab-pane label="导出列" name="columns">
-        <div style="margin-bottom: 15px">
-          <el-alert
-            title="提示:只有勾选的列才会被导出，可以单独设置每列的宽度"
-            type="info"
-            :closable="false"
-            show-icon
-          />
-        </div>
+      <!-- 基本设置 -->
+      <el-tab-pane label="基本设置" name="basic">
+        <el-form :model="exportConfig" label-width="130px">
+          <el-form-item label="文件名">
+            <el-input
+              v-model="exportConfig.fileName"
+              placeholder="请输入导出文件名"
+              clearable
+            >
+              <template #append>.xlsx</template>
+            </el-input>
+          </el-form-item>
 
-        <div style="margin-bottom: 15px; display: flex; gap: 10px">
-          <el-button size="small" @click="selectAll">
-            <el-icon><Select /></el-icon>
-            全选
-          </el-button>
-          <el-button size="small" @click="deselectAll">
-            <el-icon><Close /></el-icon>
-            全不选
-          </el-button>
-          <el-button size="small" @click="setAllWidth">
-            <el-icon><Setting /></el-icon>
-            统一设置宽度
-          </el-button>
-        </div>
-
-        <el-tree
-          ref="exportTreeRef"
-          :data="exportTreeData"
-          :props="treeProps"
-          node-key="id"
-          default-expand-all
-          show-checkbox
-          @check="handleCheckChange"
-        >
-          <template #default="{ node, data }">
-            <div class="tree-node">
-              <span class="node-label">{{ node.label }}</span>
-              <el-input-number
-                v-if="!data.children"
-                v-model="data.exportWidth"
-                :min="50"
-                :max="300"
-                size="small"
-                style="margin-left: 10px; width: 120px"
-                @click.stop
+          <el-form-item label="字体设置方式">
+            <el-radio-group v-model="exportConfig.useUniformFont">
+              <el-radio :label="true">统一字体格式</el-radio>
+              <el-radio :label="false">保持列表样式</el-radio>
+            </el-radio-group>
+            <div class="form-tip">
+              <el-icon><InfoFilled /></el-icon>
+              <span
+                >选择"统一字体格式"可整体设置,选择"保持列表样式"将完全按照列表显示效果导出</span
               >
-                <template #prefix>宽度:</template>
-              </el-input-number>
             </div>
+          </el-form-item>
+
+          <template v-if="exportConfig.useUniformFont">
+            <el-divider content-position="left">统一字体设置</el-divider>
+
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="字体">
+                  <el-select v-model="exportConfig.fontFamily">
+                    <el-option label="微软雅黑" value="Microsoft YaHei" />
+                    <el-option label="宋体" value="SimSun" />
+                    <el-option label="黑体" value="SimHei" />
+                    <el-option label="Arial" value="Arial" />
+                    <el-option
+                      label="Times New Roman"
+                      value="Times New Roman"
+                    />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="字体大小">
+                  <el-input-number
+                    v-model="exportConfig.fontSize"
+                    :min="8"
+                    :max="24"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="字体粗细">
+                  <el-select v-model="exportConfig.fontBold">
+                    <el-option label="正常" :value="false" />
+                    <el-option label="加粗" :value="true" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="字体颜色">
+                  <el-color-picker
+                    v-model="exportConfig.fontColor"
+                    show-alpha
+                    :predefine="presetColors"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
           </template>
-        </el-tree>
+        </el-form>
       </el-tab-pane>
 
-      <!-- 导出样式配置 -->
-      <el-tab-pane label="导出样式" name="style">
-        <el-form :model="exportStyle" label-width="130px">
-          <el-divider content-position="left">表头样式</el-divider>
+      <!-- 导出列配置 -->
+      <el-tab-pane label="导出列" name="columns">
+        <div class="export-columns-section">
+          <div class="toolbar">
+            <el-alert
+              title="提示:只导出当前列表中已展示的列"
+              type="info"
+              :closable="false"
+              show-icon
+            />
+          </div>
 
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="表头背景色">
-                <el-color-picker v-model="exportStyle.headerBgColor" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="表头文字色">
-                <el-color-picker v-model="exportStyle.headerTextColor" />
-              </el-form-item>
-            </el-col>
-          </el-row>
+          <div class="actions-bar">
+            <el-button size="small" type="primary" @click="selectAllColumns">
+              <el-icon><Select /></el-icon>
+              全选
+            </el-button>
+            <el-button size="small" @click="deselectAllColumns">
+              <el-icon><Close /></el-icon>
+              全不选
+            </el-button>
+            <el-button size="small" type="warning" @click="batchSetWidth">
+              <el-icon><Setting /></el-icon>
+              批量设置列宽
+            </el-button>
+          </div>
 
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="表头字体大小">
-                <el-input-number
-                  v-model="exportStyle.headerFontSize"
-                  :min="10"
-                  :max="24"
+          <el-table
+            :data="exportColumnsData"
+            row-key="id"
+            default-expand-all
+            :tree-props="{ children: 'children' }"
+            border
+            style="width: 100%; margin-top: 15px"
+          >
+            <el-table-column label="导出" width="80" align="center">
+              <template #default="{ row }">
+                <el-checkbox
+                  v-if="row.prop"
+                  v-model="row.export"
+                  @change="handleExportChange(row)"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
+                <span v-else>-</span>
+              </template>
+            </el-table-column>
 
-          <el-divider content-position="left">数据行样式</el-divider>
+            <el-table-column label="列名" prop="label" min-width="180" />
 
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="数据行字体大小">
+            <el-table-column label="列宽" width="120" align="center">
+              <template #default="{ row }">
                 <el-input-number
-                  v-model="exportStyle.fontSize"
+                  v-if="row.prop && row.export"
+                  v-model="row.exportWidth"
                   :min="10"
-                  :max="20"
+                  :max="100"
+                  size="small"
+                  controls-position="right"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </el-form>
+                <span v-else class="no-config">-</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="对齐方式" width="150" align="center">
+              <template #default="{ row }">
+                <el-select
+                  v-if="row.prop && row.export"
+                  v-model="row.alignment"
+                  size="small"
+                  style="width: 120px"
+                >
+                  <el-option label="居左" value="left" />
+                  <el-option label="居中" value="center" />
+                  <el-option label="居右" value="right" />
+                </el-select>
+                <span v-else class="no-config">-</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </el-tab-pane>
     </el-tabs>
 
@@ -121,17 +181,37 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
-import { Download, Select, Close, Setting } from "@element-plus/icons-vue";
+import {
+  Download,
+  Select,
+  Close,
+  Setting,
+  InfoFilled
+} from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { exportMultiHeaderExcel } from "../utils/excelExport.js";
+import PRESET_COLORS from "../utils/colorPresets";
 
 const props = defineProps({
   modelValue: {
     type: Boolean,
     default: false
   },
-  columns: {
+  visibleColumns: {
     type: Array,
     default: () => []
+  },
+  tableData: {
+    type: Array,
+    default: () => []
+  },
+  globalStyle: {
+    type: Object,
+    default: () => ({})
+  },
+  cellStyles: {
+    type: Object,
+    default: () => ({})
   }
 });
 
@@ -142,223 +222,286 @@ const visible = computed({
   set: (val) => emit("update:modelValue", val)
 });
 
-const activeTab = ref("columns");
-const exportTreeRef = ref(null);
-const exportTreeData = ref([]);
+const activeTab = ref("basic");
 const exporting = ref(false);
+const presetColors = ref(PRESET_COLORS);
 
-const treeProps = {
-  label: "label",
-  children: "children"
-};
-
-const exportStyle = ref({
-  headerBgColor: "#4A90E2",
-  headerTextColor: "#FFFFFF",
-  headerFontSize: 12,
-  fontSize: 11
+// 导出配置
+const exportConfig = ref({
+  fileName: "鄂尔多斯市统计数据",
+  useUniformFont: false,
+  fontFamily: "Microsoft YaHei",
+  fontSize: 11,
+  fontBold: false,
+  fontColor: "#000000"
 });
 
-// 初始化导出树数据
+// 导出列数据
+const exportColumnsData = ref([]);
+
+// 监听可见列变化,初始化导出列数据
 watch(
-  () => props.columns,
+  () => props.visibleColumns,
   (newColumns) => {
     if (newColumns && newColumns.length > 0) {
-      exportTreeData.value = convertToExportTree(newColumns);
-      // 默认全选
-      setTimeout(() => {
-        if (exportTreeRef.value) {
-          const allKeys = getAllNodeKeys(exportTreeData.value);
-          exportTreeRef.value.setCheckedKeys(allKeys);
-        }
-      }, 100);
+      exportColumnsData.value = convertToExportData(newColumns);
     }
   },
   { immediate: true, deep: true }
 );
 
-function convertToExportTree(columns, parentId = "") {
+// 转换为导出数据格式
+function convertToExportData(columns, parentId = "") {
   return columns.map((col, index) => {
     const id = parentId ? `${parentId}-${index}` : `exp-${index}`;
+
+    // 计算导出列宽(列表宽度的1/3,限制10-100)
+    let exportWidth = 30;
+    if (col.width) {
+      exportWidth = Math.round(col.width / 3);
+      exportWidth = Math.max(10, Math.min(100, exportWidth));
+    }
+
     const node = {
       id,
       label: col.label,
       prop: col.prop,
       key: col.key,
-      exportWidth: col.width || 100,
-      children: col.children ? convertToExportTree(col.children, id) : undefined
+      export: true, // 默认全选
+      exportWidth: exportWidth,
+      alignment: "center",
+      originalWidth: col.width
     };
+
+    if (col.children && col.children.length > 0) {
+      node.children = convertToExportData(col.children, id);
+    }
+
     return node;
   });
 }
 
-function getAllNodeKeys(nodes) {
-  const keys = [];
-  nodes.forEach((node) => {
-    keys.push(node.id);
-    if (node.children) {
-      keys.push(...getAllNodeKeys(node.children));
-    }
-  });
-  return keys;
+// 导出选择变化
+function handleExportChange(row) {
+  if (row.children) {
+    setChildrenExport(row.children, row.export);
+  }
 }
 
-function handleCheckChange() {
-  // 处理选中变化
+function setChildrenExport(children, exportVal) {
+  children.forEach((child) => {
+    child.export = exportVal;
+    if (child.children) {
+      setChildrenExport(child.children, exportVal);
+    }
+  });
 }
 
 // 全选
-function selectAll() {
-  const allKeys = getAllNodeKeys(exportTreeData.value);
-  exportTreeRef.value.setCheckedKeys(allKeys);
+function selectAllColumns() {
+  setAllExport(exportColumnsData.value, true);
   ElMessage.success("已全选所有列");
 }
 
 // 全不选
-function deselectAll() {
-  exportTreeRef.value.setCheckedKeys([]);
+function deselectAllColumns() {
+  setAllExport(exportColumnsData.value, false);
   ElMessage.success("已取消全选");
 }
 
-// 统一设置宽度
-async function setAllWidth() {
+function setAllExport(columns, exportVal) {
+  columns.forEach((col) => {
+    col.export = exportVal;
+    if (col.children) {
+      setAllExport(col.children, exportVal);
+    }
+  });
+}
+
+// 批量设置列宽
+async function batchSetWidth() {
   try {
     const { value } = await ElMessageBox.prompt(
-      "请输入统一的列宽(像素)",
-      "设置列宽",
+      "请输入统一的列宽(10-100)",
+      "批量设置列宽",
       {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         inputPattern: /^[0-9]+$/,
         inputErrorMessage: "请输入有效的数字",
-        inputValue: "100"
+        inputValue: "30"
       }
     );
 
     const width = parseInt(value);
-    if (width < 50 || width > 300) {
-      ElMessage.warning("列宽范围应在 50-300 之间");
+    if (width < 10 || width > 100) {
+      ElMessage.warning("列宽范围应在 10-100 之间");
       return;
     }
 
-    // 递归设置所有叶子节点的宽度
-    function setWidthRecursive(nodes) {
-      nodes.forEach((node) => {
-        if (node.children) {
-          setWidthRecursive(node.children);
-        } else {
-          node.exportWidth = width;
-        }
-      });
-    }
-
-    setWidthRecursive(exportTreeData.value);
-    ElMessage.success(`已将所有列宽设置为 ${width} 像素`);
+    setAllWidth(exportColumnsData.value, width);
+    ElMessage.success(`已将所有列宽设置为 ${width}`);
   } catch (error) {
     // 用户取消
   }
 }
 
-function getCheckedColumns() {
-  const checkedKeys = exportTreeRef.value.getCheckedKeys();
-  const checkedNodes = exportTreeRef.value.getCheckedNodes();
-
-  // 构建选中的列配置
-  return buildCheckedColumns(exportTreeData.value, checkedKeys);
-}
-
-function buildCheckedColumns(nodes, checkedKeys) {
-  const result = [];
-
-  nodes.forEach((node) => {
-    if (checkedKeys.includes(node.id)) {
-      const col = {
-        label: node.label
-      };
-
-      if (node.prop) {
-        col.prop = node.prop;
-        col.exportWidth = node.exportWidth;
-      }
-      if (node.key) col.key = node.key;
-
-      if (node.children) {
-        const childCols = buildCheckedColumns(node.children, checkedKeys);
-        if (childCols.length > 0) {
-          col.children = childCols;
-        }
-      }
-
-      result.push(col);
+function setAllWidth(columns, width) {
+  columns.forEach((col) => {
+    if (col.prop && col.export) {
+      col.exportWidth = width;
+    }
+    if (col.children) {
+      setAllWidth(col.children, width);
     }
   });
-
-  return result;
 }
 
-function getColumnWidths() {
-  const widths = {};
+// 导出
+async function handleExport() {
+  // 收集要导出的列
+  const exportColumns = collectExportColumns(exportColumnsData.value);
 
-  function traverse(nodes) {
-    nodes.forEach((node) => {
-      if (node.prop) {
-        widths[node.prop] = node.exportWidth;
-      }
-      if (node.children) {
-        traverse(node.children);
-      }
-    });
+  if (exportColumns.length === 0) {
+    ElMessage.warning("请至少选择一列进行导出");
+    return;
   }
 
-  traverse(exportTreeData.value);
-  return widths;
-}
-
-async function handleExport() {
-  const checkedColumns = getCheckedColumns();
-
-  if (checkedColumns.length === 0) {
-    ElMessage.warning("请至少选择一列进行导出");
+  if (!exportConfig.value.fileName.trim()) {
+    ElMessage.warning("请输入文件名");
     return;
   }
 
   exporting.value = true;
 
   try {
-    const exportConfig = {
-      columns: checkedColumns,
-      columnWidths: getColumnWidths(),
-      ...exportStyle.value
+    // 准备导出配置
+    const config = {
+      fileName: exportConfig.value.fileName,
+      useUniformFont: exportConfig.value.useUniformFont,
+      headerBgColor: props.globalStyle.headerBgColor?.replace("#", ""),
+      headerTextColor: props.globalStyle.headerTextColor?.replace("#", ""),
+      headerFontSize: props.globalStyle.headerFontSize || 12,
+      cellStyles: exportConfig.value.useUniformFont ? {} : props.cellStyles,
+      columnAlignments: collectColumnAlignments(exportColumnsData.value)
     };
 
-    emit("export", exportConfig);
+    // 如果使用统一字体
+    if (exportConfig.value.useUniformFont) {
+      config.uniformFont = {
+        family: exportConfig.value.fontFamily,
+        size: exportConfig.value.fontSize,
+        bold: exportConfig.value.fontBold,
+        color: exportConfig.value.fontColor?.replace("#", "") || "000000"
+      };
+    } else {
+      // 使用列表样式
+      config.fontSize = props.globalStyle.fontSize || 11;
+      config.rowBgColor = props.globalStyle.rowBgColor?.replace("#", "");
+      config.rowTextColor = props.globalStyle.rowTextColor?.replace("#", "");
+    }
 
-    setTimeout(() => {
-      exporting.value = false;
-      visible.value = false;
-    }, 500);
+    // 执行导出
+    await exportMultiHeaderExcel(
+      exportColumns,
+      props.tableData,
+      config,
+      exportConfig.value.fileName
+    );
+
+    ElMessage.success("导出成功!");
+    visible.value = false;
   } catch (error) {
-    exporting.value = false;
+    console.error("导出失败:", error);
     ElMessage.error("导出失败: " + error.message);
+  } finally {
+    exporting.value = false;
   }
+}
+
+// 收集要导出的列
+function collectExportColumns(columns) {
+  const result = [];
+
+  columns.forEach((col) => {
+    if (col.children && col.children.length > 0) {
+      const childColumns = collectExportColumns(col.children);
+      if (childColumns.length > 0) {
+        result.push({
+          label: col.label,
+          key: col.key,
+          children: childColumns
+        });
+      }
+    } else if (col.export && col.prop) {
+      result.push({
+        label: col.label,
+        prop: col.prop,
+        exportWidth: col.exportWidth,
+        width: col.exportWidth,
+        alignment: col.alignment
+      });
+    }
+  });
+
+  return result;
+}
+
+// 收集列对齐方式
+function collectColumnAlignments(columns) {
+  const alignments = {};
+
+  function traverse(cols) {
+    cols.forEach((col) => {
+      if (col.prop && col.export) {
+        alignments[col.prop] = col.alignment;
+      }
+      if (col.children) {
+        traverse(col.children);
+      }
+    });
+  }
+
+  traverse(columns);
+  return alignments;
 }
 
 function handleCancel() {
   visible.value = false;
 }
+
+function handleDialogClose() {
+  // 对话框关闭时重置状态
+  exporting.value = false;
+}
 </script>
 
 <style scoped>
-.tree-node {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 8px;
+.export-columns-section {
+  padding: 10px 0;
 }
 
-.node-label {
-  flex: 1;
+.toolbar {
+  margin-bottom: 15px;
+}
+
+.actions-bar {
+  display: flex;
+  gap: 10px;
+}
+
+.form-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #909399;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.no-config {
+  color: #c0c4cc;
+  font-size: 12px;
 }
 
 .dialog-footer {
@@ -367,8 +510,9 @@ function handleCancel() {
   gap: 10px;
 }
 
-:deep(.el-tree-node__content) {
-  height: 45px;
-  border-bottom: 1px solid #f5f5f5;
+:deep(.el-input-group__append) {
+  padding: 0 15px;
+  background-color: #f5f7fa;
+  color: #909399;
 }
 </style>
