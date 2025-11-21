@@ -35,8 +35,20 @@
 
     <!-- 表格卡片 -->
     <el-card class="table-card" shadow="hover">
-      <div class="table-wrapper">
+      <!-- 添加横向滚动容器 -->
+      <div class="table-scroll-wrapper">
         <table class="custom-table" :style="tableGlobalStyle">
+          <!-- 添加colgroup控制列宽 -->
+          <colgroup>
+            <col
+              v-for="(col, index) in flatColumns"
+              :key="index"
+              :style="{
+                width: (col.width || 120) + 'px',
+                minWidth: (col.width || 120) + 'px'
+              }"
+            />
+          </colgroup>
           <thead>
             <tr
               v-for="(row, rowIndex) in headerRows"
@@ -146,7 +158,10 @@ const globalStyle = reactive({
 // 单元格样式配置
 const cellStyles = reactive({});
 
-// 计算扁平化的列(只包含叶子节点)
+/**
+ * 计算扁平化的列(只包含叶子节点)
+ * 递归遍历嵌套的列配置,提取所有可见的叶子列
+ */
 const flatColumns = computed(() => {
   const result = [];
 
@@ -166,7 +181,10 @@ const flatColumns = computed(() => {
   return result;
 });
 
-// 计算表头行
+/**
+ * 计算表头行
+ * 根据嵌套的列配置生成多层级表头,计算colspan和rowspan
+ */
 const headerRows = computed(() => {
   const maxDepth = getMaxDepth(currentColumns.value);
   const rows = Array(maxDepth)
@@ -201,7 +219,10 @@ const headerRows = computed(() => {
   return rows;
 });
 
-// 计算当前可见的列(用于导出)
+/**
+ * 计算当前可见的列(用于导出)
+ * 过滤掉隐藏的列,保留嵌套结构
+ */
 const visibleColumnsList = computed(() => {
   const result = [];
 
@@ -227,13 +248,19 @@ const visibleColumnsList = computed(() => {
   return result;
 });
 
-// 表格全局样式
+/**
+ * 表格全局样式
+ * 设置边框颜色和字体大小
+ */
 const tableGlobalStyle = computed(() => ({
   "--border-color": globalStyle.borderColor,
   fontSize: `${globalStyle.fontSize}px`
 }));
 
-// 获取表头单元格样式
+/**
+ * 获取表头单元格样式
+ * @returns {Object} 样式对象
+ */
 function getHeaderCellStyle() {
   return {
     backgroundColor: globalStyle.headerBgColor,
@@ -243,7 +270,12 @@ function getHeaderCellStyle() {
   };
 }
 
-// 获取数据单元格样式
+/**
+ * 获取数据单元格样式
+ * @param {number} rowIndex - 行索引
+ * @param {number} colIndex - 列索引
+ * @returns {Object} 样式对象
+ */
 function getCellStyle(rowIndex, colIndex) {
   const cellKey = `${rowIndex}_${colIndex}`;
   const customStyle = cellStyles[cellKey];
@@ -264,21 +296,31 @@ function getCellStyle(rowIndex, colIndex) {
   };
 }
 
-// 格式化单元格值
+/**
+ * 格式化单元格值
+ * @param {*} value - 单元格值
+ * @param {string} prop - 字段名
+ */
 function formatCellValue(value, prop) {
   if (value === null || value === undefined) return "-";
   if (prop === "totalNum") return value.toLocaleString();
   return value;
 }
 
-// 双击单元格
+/**
+ * 双击单元格事件
+ * 打开样式配置对话框
+ */
 function handleCellDblClick(rowIndex, colIndex) {
   selectedCell.value = { row: rowIndex, col: colIndex };
   showStyleConfigDialog.value = true;
   ElMessage.info(`已选中第 ${rowIndex + 1} 行,第 ${colIndex + 1} 列`);
 }
 
-// 获取最大深度
+/**
+ * 获取最大深度
+ * 递归计算嵌套列的最大层级深度
+ */
 function getMaxDepth(columns, depth = 1) {
   let maxDepth = depth;
   columns.forEach((col) => {
@@ -291,25 +333,37 @@ function getMaxDepth(columns, depth = 1) {
   return maxDepth;
 }
 
-// 获取叶子节点数量
+/**
+ * 获取叶子节点数量
+ * 递归计算一个列下有多少个叶子列(用于计算colspan)
+ */
 function getLeafCount(col) {
   if (col.visible === false) return 0;
   if (!col.children || col.children.length === 0) return 1;
   return col.children.reduce((sum, child) => sum + getLeafCount(child), 0);
 }
 
-// 列配置确认
+/**
+ * 列配置确认
+ * 更新当前列配置
+ */
 function handleColumnConfigConfirm(newColumns) {
   currentColumns.value = newColumns;
 }
 
-// 样式配置确认
+/**
+ * 样式配置确认
+ * 应用全局样式配置
+ */
 function handleStyleConfigConfirm({ globalStyle: newGlobalStyle }) {
   Object.assign(globalStyle, newGlobalStyle);
   ElMessage.success("样式配置已应用");
 }
 
-// 单元格样式更新
+/**
+ * 单元格样式更新
+ * 更新或删除指定单元格的样式
+ */
 function handleCellStyleUpdate(cellKey, style) {
   if (style === null) {
     delete cellStyles[cellKey];
@@ -318,7 +372,10 @@ function handleCellStyleUpdate(cellKey, style) {
   }
 }
 
-// 导出Excel
+/**
+ * 导出Excel
+ * 执行数据导出操作
+ */
 function handleExport(exportConfig) {
   try {
     // 准备导出配置
@@ -397,17 +454,20 @@ function handleExport(exportConfig) {
   background: #ffffff;
 }
 
-.table-wrapper {
+/* 表格滚动容器 - 支持横向和纵向滚动 */
+.table-scroll-wrapper {
   overflow-x: auto;
   overflow-y: auto;
   max-height: 650px;
 }
 
 .custom-table {
-  width: 100%;
+  width: auto; /* 改为 auto 以支持列宽配置 */
+  min-width: 100%; /* 保证最小填满容器 */
   border-collapse: collapse;
   background: white;
   border: 1px solid var(--border-color, #ebeef5);
+  table-layout: fixed; /* 固定表格布局,使列宽配置生效 */
 }
 
 .header-cell {
@@ -463,22 +523,22 @@ function handleExport(exportConfig) {
 }
 
 /* 滚动条样式 */
-.table-wrapper::-webkit-scrollbar {
+.table-scroll-wrapper::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.table-wrapper::-webkit-scrollbar-track {
+.table-scroll-wrapper::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
 
-.table-wrapper::-webkit-scrollbar-thumb {
+.table-scroll-wrapper::-webkit-scrollbar-thumb {
   background: #888;
   border-radius: 4px;
 }
 
-.table-wrapper::-webkit-scrollbar-thumb:hover {
+.table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
 </style>

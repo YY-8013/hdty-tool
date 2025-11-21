@@ -1,5 +1,9 @@
 import ExcelJS from "exceljs";
 
+/**
+ * 通用Excel导出工具类
+ * 支持多层级表头、自定义样式、单元格样式等功能
+ */
 class UniversalExcelExporter {
   constructor() {
     this.workbook = null;
@@ -8,6 +12,10 @@ class UniversalExcelExporter {
     this.headerLevels = 0;
   }
 
+  /**
+   * 初始化工作簿
+   * @param {string} creator - 创建者名称
+   */
   initWorkbook(creator = "系统") {
     this.workbook = new ExcelJS.Workbook();
     this.workbook.creator = creator;
@@ -15,11 +23,20 @@ class UniversalExcelExporter {
     return this;
   }
 
+  /**
+   * 添加工作表
+   * @param {string} name - 工作表名称
+   */
   addWorksheet(name = "Sheet1") {
     this.worksheet = this.workbook.addWorksheet(name);
     return this;
   }
 
+  /**
+   * 处理表头结构
+   * 将嵌套的列配置转换为表头行和合并单元格信息
+   * @param {Array} headerList - 列配置数组
+   */
   processHeaderStructure(headerList) {
     this.flatColumns = [];
     this.headerLevels = this._calculateMaxDepth(headerList);
@@ -104,6 +121,11 @@ class UniversalExcelExporter {
     return count;
   }
 
+  /**
+   * 构建动态表头
+   * @param {Array} headerList - 列配置
+   * @param {Object} headerStyle - 表头样式配置
+   */
   buildDynamicHeaders(headerList, headerStyle) {
     if (!this.worksheet) throw new Error("请先添加工作表");
     const { headerRows, mergeCells } = this.processHeaderStructure(headerList);
@@ -127,6 +149,11 @@ class UniversalExcelExporter {
     return this;
   }
 
+  /**
+   * 应用表头样式
+   * @param {Object} headerRow - 表头行对象
+   * @param {Object} customStyle - 自定义样式
+   */
   applyHeaderStyle(headerRow, customStyle = {}) {
     headerRow.height = 30;
     headerRow.eachCell((cell) => {
@@ -154,6 +181,11 @@ class UniversalExcelExporter {
     });
   }
 
+  /**
+   * 添加数据行
+   * @param {Array} data - 数据数组
+   * @param {Object} styleConfig - 样式配置
+   */
   addData(data, styleConfig = {}) {
     if (!this.worksheet) throw new Error("请先添加工作表");
     const cellStyles = styleConfig.cellStyles || {};
@@ -176,6 +208,11 @@ class UniversalExcelExporter {
     return this;
   }
 
+  /**
+   * 应用统一字体样式
+   * @param {Object} dataRow - 数据行对象
+   * @param {Object} uniformFont - 统一字体配置
+   */
   applyUniformFont(dataRow, uniformFont) {
     dataRow.eachCell((cell) => {
       cell.font = {
@@ -194,6 +231,13 @@ class UniversalExcelExporter {
     });
   }
 
+  /**
+   * 应用自定义单元格样式
+   * @param {Object} dataRow - 数据行对象
+   * @param {number} rowIndex - 行索引
+   * @param {Object} cellStyles - 单元格样式对象
+   * @param {Object} styleConfig - 样式配置
+   */
   applyCustomCellStyles(dataRow, rowIndex, cellStyles, styleConfig) {
     const fontSize = styleConfig.fontSize || 11;
     dataRow.eachCell((cell, colNumber) => {
@@ -230,6 +274,10 @@ class UniversalExcelExporter {
     });
   }
 
+  /**
+   * 应用列对齐方式
+   * @param {Object} dataRow - 数据行对象
+   */
   applyColumnAlignments(dataRow) {
     dataRow.eachCell((cell, colNumber) => {
       const col = this.flatColumns[colNumber - 1];
@@ -239,13 +287,42 @@ class UniversalExcelExporter {
     });
   }
 
+  /**
+   * 颜色转换为ARGB格式
+   * @param {string} color - 颜色值,支持 #RGB, #RRGGBB, RRGGBB 等格式
+   * @returns {string} ARGB格式的颜色值 (例: FFFF0000 表示红色)
+   */
   _colorToArgb(color) {
-    if (!color) return "FFFFFFFF";
-    let hex = color.replace("#", "");
-    if (hex.length === 6) hex = "FF" + hex;
+    if (!color) return "FFFFFFFF"; // 默认白色
+
+    // 移除 # 号
+    let hex = color.replace("#", "").replace("0x", "");
+
+    // 处理三位简写 #RGB -> #RRGGBB
+    if (hex.length === 3) {
+      hex = hex
+        .split("")
+        .map((c) => c + c)
+        .join("");
+    }
+
+    // 确保是 6 位频色值
+    if (hex.length === 6) {
+      hex = "FF" + hex; // 添加完全不透明的 Alpha 通道
+    }
+
+    // 确保是 8 位 ARGB
+    if (hex.length !== 8) {
+      console.warn(`无效的颜色值: ${color}, 使用默认白色`);
+      return "FFFFFFFF";
+    }
+
     return hex.toUpperCase();
   }
 
+  /**
+   * 设置列宽
+   */
   setColumnWidth() {
     if (!this.worksheet) throw new Error("请先添加工作表");
     this.worksheet.columns = this.flatColumns.map((col) => ({
@@ -254,6 +331,10 @@ class UniversalExcelExporter {
     return this;
   }
 
+  /**
+   * 导出Excel文件
+   * @param {string} fileName - 文件名
+   */
   async export(fileName = "数据导出") {
     if (!this.workbook) throw new Error("请先初始化工作簿");
     const buffer = await this.workbook.xlsx.writeBuffer();
@@ -269,6 +350,13 @@ class UniversalExcelExporter {
   }
 }
 
+/**
+ * 导出多层级表头的Excel文件
+ * @param {Array} columns - 列配置数组(支持嵌套)
+ * @param {Array} data - 数据数组
+ * @param {Object} exportConfig - 导出配置
+ * @param {string} fileName - 文件名
+ */
 export async function exportMultiHeaderExcel(
   columns,
   data,

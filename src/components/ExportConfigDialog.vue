@@ -4,168 +4,191 @@
     title="导出配置"
     width="950px"
     :close-on-click-modal="false"
+    class="export-config-dialog"
     @close="handleDialogClose"
   >
-    <el-tabs v-model="activeTab">
-      <!-- 基本设置 -->
-      <el-tab-pane label="基本设置" name="basic">
-        <el-form :model="exportConfig" label-width="130px">
-          <el-form-item label="文件名">
-            <el-input
-              v-model="exportConfig.fileName"
-              placeholder="请输入导出文件名"
-              clearable
-            >
-              <template #append>.xlsx</template>
-            </el-input>
-          </el-form-item>
-
-          <el-form-item label="字体设置方式">
-            <el-radio-group v-model="exportConfig.useUniformFont">
-              <el-radio :label="true">统一字体格式</el-radio>
-              <el-radio :label="false">保持列表样式</el-radio>
-            </el-radio-group>
-            <div class="form-tip">
-              <el-icon><InfoFilled /></el-icon>
-              <span
-                >选择"统一字体格式"可整体设置,选择"保持列表样式"将完全按照列表显示效果导出</span
+    <div class="dialog-content-wrapper">
+      <el-tabs v-model="activeTab">
+        <!-- 基本设置 -->
+        <el-tab-pane label="基本设置" name="basic">
+          <el-form :model="exportConfig" label-width="130px">
+            <el-form-item label="文件名">
+              <el-input
+                v-model="exportConfig.fileName"
+                placeholder="请输入导出文件名"
+                clearable
               >
-            </div>
-          </el-form-item>
+                <template #append>.xlsx</template>
+              </el-input>
+            </el-form-item>
 
-          <template v-if="exportConfig.useUniformFont">
-            <el-divider content-position="left">统一字体设置</el-divider>
-
-            <el-row :gutter="20">
-              <el-col :span="12">
-                <el-form-item label="字体">
-                  <el-select v-model="exportConfig.fontFamily">
-                    <el-option label="微软雅黑" value="Microsoft YaHei" />
-                    <el-option label="宋体" value="SimSun" />
-                    <el-option label="黑体" value="SimHei" />
-                    <el-option label="Arial" value="Arial" />
-                    <el-option
-                      label="Times New Roman"
-                      value="Times New Roman"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="字体大小">
-                  <el-input-number
-                    v-model="exportConfig.fontSize"
-                    :min="8"
-                    :max="24"
-                  />
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <el-row :gutter="20">
-              <el-col :span="12">
-                <el-form-item label="字体粗细">
-                  <el-select v-model="exportConfig.fontBold">
-                    <el-option label="正常" :value="false" />
-                    <el-option label="加粗" :value="true" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="字体颜色">
-                  <el-color-picker
-                    v-model="exportConfig.fontColor"
-                    show-alpha
-                    :predefine="presetColors"
-                  />
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </template>
-        </el-form>
-      </el-tab-pane>
-
-      <!-- 导出列配置 -->
-      <el-tab-pane label="导出列" name="columns">
-        <div class="export-columns-section">
-          <div class="toolbar">
-            <el-alert
-              title="提示:只导出当前列表中已展示的列"
-              type="info"
-              :closable="false"
-              show-icon
-            />
-          </div>
-
-          <div class="actions-bar">
-            <el-button size="small" type="primary" @click="selectAllColumns">
-              <el-icon><Select /></el-icon>
-              全选
-            </el-button>
-            <el-button size="small" @click="deselectAllColumns">
-              <el-icon><Close /></el-icon>
-              全不选
-            </el-button>
-            <el-button size="small" type="warning" @click="batchSetWidth">
-              <el-icon><Setting /></el-icon>
-              批量设置列宽
-            </el-button>
-          </div>
-
-          <el-table
-            :data="exportColumnsData"
-            row-key="id"
-            default-expand-all
-            :tree-props="{ children: 'children' }"
-            border
-            style="width: 100%; margin-top: 15px"
-          >
-            <el-table-column label="导出" width="80" align="center">
-              <template #default="{ row }">
-                <el-checkbox
-                  v-if="row.prop"
-                  v-model="row.export"
-                  @change="handleExportChange(row)"
-                />
-                <span v-else>-</span>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="列名" prop="label" min-width="180" />
-
-            <el-table-column label="列宽" width="120" align="center">
-              <template #default="{ row }">
-                <el-input-number
-                  v-if="row.prop && row.export"
-                  v-model="row.exportWidth"
-                  :min="10"
-                  :max="100"
-                  size="small"
-                  controls-position="right"
-                />
-                <span v-else class="no-config">-</span>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="对齐方式" width="150" align="center">
-              <template #default="{ row }">
-                <el-select
-                  v-if="row.prop && row.export"
-                  v-model="row.alignment"
-                  size="small"
-                  style="width: 120px"
+            <el-form-item label="字体设置方式">
+              <el-radio-group v-model="exportConfig.useUniformFont">
+                <el-radio :label="true">统一字体格式</el-radio>
+                <el-radio :label="false">保持列表样式</el-radio>
+              </el-radio-group>
+              <div class="form-tip">
+                <el-icon><InfoFilled /></el-icon>
+                <span
+                  >选择"统一字体格式"可整体设置,选择"保持列表样式"将完全按照列表显示效果导出</span
                 >
-                  <el-option label="居左" value="left" />
-                  <el-option label="居中" value="center" />
-                  <el-option label="居右" value="right" />
-                </el-select>
-                <span v-else class="no-config">-</span>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-      </el-tab-pane>
-    </el-tabs>
+              </div>
+            </el-form-item>
+
+            <template v-if="exportConfig.useUniformFont">
+              <el-divider content-position="left">统一字体设置</el-divider>
+
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="字体">
+                    <el-select v-model="exportConfig.fontFamily">
+                      <el-option label="微软雅黑" value="Microsoft YaHei" />
+                      <el-option label="宋体" value="SimSun" />
+                      <el-option label="黑体" value="SimHei" />
+                      <el-option label="Arial" value="Arial" />
+                      <el-option
+                        label="Times New Roman"
+                        value="Times New Roman"
+                      />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="字体大小">
+                    <el-input-number
+                      v-model="exportConfig.fontSize"
+                      :min="8"
+                      :max="24"
+                    />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="字体粗细">
+                    <el-select v-model="exportConfig.fontBold">
+                      <el-option label="正常" :value="false" />
+                      <el-option label="加粗" :value="true" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="字体颜色">
+                    <el-color-picker
+                      v-model="exportConfig.fontColor"
+                      show-alpha
+                      :predefine="presetColors"
+                    />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </template>
+          </el-form>
+        </el-tab-pane>
+
+        <!-- 导出列配置 -->
+        <el-tab-pane label="导出列" name="columns">
+          <div class="export-columns-section">
+            <div class="toolbar">
+              <el-alert
+                title="提示:只导出当前列表中已展示的列"
+                type="info"
+                :closable="false"
+                show-icon
+              />
+            </div>
+
+            <div class="actions-bar">
+              <el-button size="small" type="primary" @click="selectAllColumns">
+                <el-icon><Select /></el-icon>
+                全选
+              </el-button>
+              <el-button size="small" @click="deselectAllColumns">
+                <el-icon><Close /></el-icon>
+                全不选
+              </el-button>
+              <el-button size="small" type="warning" @click="batchSetWidth">
+                <el-icon><Setting /></el-icon>
+                批量设置列宽
+              </el-button>
+            </div>
+
+            <!-- 使用层级表格展示 -->
+            <el-table
+              :data="exportColumnsData"
+              row-key="id"
+              default-expand-all
+              :tree-props="{ children: 'children' }"
+              border
+              style="width: 100%; margin-top: 15px"
+              :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+            >
+              <el-table-column label="导出" width="80" align="center" fixed>
+                <template #default="{ row }">
+                  <el-checkbox
+                    v-if="row.prop"
+                    v-model="row.export"
+                    @change="handleExportChange(row)"
+                  />
+                  <span v-else>-</span>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="列名" prop="label" min-width="200">
+                <template #default="{ row }">
+                  <span
+                    :style="{ fontWeight: row.children ? 'bold' : 'normal' }"
+                  >
+                    {{ row.label }}
+                  </span>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="列宽" width="140" align="center">
+                <template #default="{ row }">
+                  <el-input-number
+                    v-if="row.prop && row.export"
+                    v-model="row.exportWidth"
+                    :min="10"
+                    :max="100"
+                    size="small"
+                    controls-position="right"
+                    style="width: 120px"
+                  />
+                  <span v-else class="no-config">-</span>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="对齐方式" width="160" align="center">
+                <template #default="{ row }">
+                  <el-select
+                    v-if="row.prop && row.export"
+                    v-model="row.alignment"
+                    size="small"
+                    style="width: 130px"
+                  >
+                    <el-option label="居左" value="left">
+                      <el-icon><Back /></el-icon>
+                      居左
+                    </el-option>
+                    <el-option label="居中" value="center">
+                      <el-icon><Minus /></el-icon>
+                      居中
+                    </el-option>
+                    <el-option label="居右" value="right">
+                      <el-icon><Right /></el-icon>
+                      居右
+                    </el-option>
+                  </el-select>
+                  <span v-else class="no-config">-</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+    </div>
 
     <template #footer>
       <div class="dialog-footer">
@@ -186,7 +209,10 @@ import {
   Select,
   Close,
   Setting,
-  InfoFilled
+  InfoFilled,
+  Back,
+  Minus,
+  Right
 } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { exportMultiHeaderExcel } from "../utils/excelExport.js";
@@ -250,7 +276,10 @@ watch(
   { immediate: true, deep: true }
 );
 
-// 转换为导出数据格式
+/**
+ * 转换为导出数据格式
+ * 将嵌套的列配置转换为带有层级的表格数据
+ */
 function convertToExportData(columns, parentId = "") {
   return columns.map((col, index) => {
     const id = parentId ? `${parentId}-${index}` : `exp-${index}`;
@@ -477,6 +506,13 @@ function handleDialogClose() {
 </script>
 
 <style scoped>
+/* 弹框内容包装器 - 限制最大高度并内部滚动 */
+.dialog-content-wrapper {
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 2px;
+}
+
 .export-columns-section {
   padding: 10px 0;
 }

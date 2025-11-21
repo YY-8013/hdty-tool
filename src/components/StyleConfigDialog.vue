@@ -4,7 +4,9 @@
     title="样式配置"
     width="950px"
     :close-on-click-modal="false"
+    class="style-config-dialog"
   >
+    <div class="dialog-content-wrapper">
     <el-tabs v-model="activeTab" @tab-change="handleTabChange">
       <!-- 全局样式 -->
       <el-tab-pane label="全局样式" name="global">
@@ -210,6 +212,7 @@
         </div>
       </el-tab-pane>
     </el-tabs>
+    </div>
 
     <!-- 只在全局样式标签页显示底部按钮 -->
     <template #footer v-if="activeTab === 'global'">
@@ -473,6 +476,13 @@ function handleCancel() {
 </script>
 
 <style scoped>
+/* 弹框内容包装器 - 限制最大高度并内部滚动 */
+.dialog-content-wrapper {
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 2px;
+}
+
 .cell-style-content {
   min-height: 400px;
 }
