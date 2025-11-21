@@ -1,20 +1,14 @@
 <template>
   <div class="data-table-container">
-    <!-- 头部操作栏 -->
-    <el-card class="header-card" shadow="hover">
-      <div class="header">
-        <div class="title-section">
-          <div class="title-content">
-            <h2>鄂尔多斯市统计列表个性化配置工具</h2>
-            <p class="subtitle">支持多层级表头、单元格级样式配置、Excel导出</p>
-          </div>
-          <el-tag type="success" size="large" effect="dark">
-            <el-icon><DocumentCopy /></el-icon>
-            {{ tableData.length }} 条数据
-          </el-tag>
+    <!-- 操作栏 -->
+    <el-card class="action-card" shadow="hover">
+      <div class="actions-wrapper">
+        <div class="data-info">
+          <el-icon class="info-icon"><DataLine /></el-icon>
+          <span class="data-count">{{ tableData.length }} 条数据</span>
         </div>
         <div class="actions">
-          <el-tooltip content="配置显示的列及顺序" placement="bottom">
+          <el-tooltip content="配置显示的列、列宽及顺序" placement="top">
             <el-button type="primary" @click="showColumnConfigDialog = true">
               <el-icon><Setting /></el-icon>
               列配置
@@ -22,17 +16,14 @@
           </el-tooltip>
           <el-tooltip
             content="设置表格和单元格样式(双击单元格即可)"
-            placement="bottom"
+            placement="top"
           >
             <el-button type="success" @click="showStyleConfigDialog = true">
               <el-icon><Brush /></el-icon>
               样式配置
             </el-button>
           </el-tooltip>
-          <el-tooltip
-            content="导出为Excel文件(保留所有样式)"
-            placement="bottom"
-          >
+          <el-tooltip content="导出为Excel文件(保留所有样式)" placement="top">
             <el-button type="warning" @click="showExportDialog = true">
               <el-icon><Download /></el-icon>
               导出Excel
@@ -76,7 +67,7 @@
                 v-for="(col, colIndex) in flatColumns"
                 :key="colIndex"
                 :style="getCellStyle(rowIndex, colIndex)"
-                class="data-cell"
+                :class="['data-cell', { 'fixed-column': colIndex === 0 }]"
                 @dblclick="handleCellDblClick(rowIndex, colIndex)"
               >
                 {{ formatCellValue(row[col.prop], col.prop) }}
@@ -110,6 +101,10 @@
     <ExportConfigDialog
       v-model="showExportDialog"
       :columns="currentColumns"
+      :visible-columns="visibleColumnsList"
+      :table-data="tableData"
+      :global-style="globalStyle"
+      :cell-styles="cellStyles"
       @export="handleExport"
     />
   </div>
@@ -117,12 +112,7 @@
 
 <script setup>
 import { ref, computed, reactive } from "vue";
-import {
-  Setting,
-  Brush,
-  Download,
-  DocumentCopy
-} from "@element-plus/icons-vue";
+import { Setting, Brush, Download, DataLine } from "@element-plus/icons-vue";
 import { mockData, tableColList } from "../mock/data.js";
 import { exportMultiHeaderExcel } from "../utils/excelExport.js";
 import ColumnConfigDialog from "./ColumnConfigDialog.vue";
@@ -209,6 +199,32 @@ const headerRows = computed(() => {
 
   buildHeader(currentColumns.value, 0);
   return rows;
+});
+
+// 计算当前可见的列(用于导出)
+const visibleColumnsList = computed(() => {
+  const result = [];
+
+  function collectVisible(cols) {
+    cols.forEach((col) => {
+      if (col.visible !== false) {
+        if (col.children && col.children.length > 0) {
+          const visibleCopy = { ...col, children: [] };
+          const childResult = [];
+          collectVisible(col.children);
+          if (childResult.length > 0) {
+            visibleCopy.children = childResult;
+            result.push(visibleCopy);
+          }
+        } else {
+          result.push({ ...col });
+        }
+      }
+    });
+  }
+
+  collectVisible(currentColumns.value);
+  return result;
 });
 
 // 表格全局样式
@@ -334,43 +350,37 @@ function handleExport(exportConfig) {
 <style scoped>
 .data-table-container {
   max-width: 100%;
-  margin: 0 auto;
+  margin: 0;
   padding: 20px;
 }
 
-.header-card {
+.action-card {
   margin-bottom: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #ffffff;
 }
 
-.header-card :deep(.el-card__body) {
-  padding: 24px;
-}
-
-.header {
+.actions-wrapper {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.title-section {
+.data-info {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #606266;
 }
 
-.title-content h2 {
-  color: #ffffff;
-  font-size: 26px;
-  font-weight: 600;
-  margin: 0 0 5px 0;
+.info-icon {
+  font-size: 20px;
+  color: #409eff;
 }
 
-.subtitle {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
-  margin: 0;
-  font-weight: 300;
+.data-count {
+  color: #303133;
 }
 
 .actions {

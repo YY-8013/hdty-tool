@@ -1,26 +1,28 @@
 <template>
-  <div id="hdty-tool-main">
-    <DataTable />
+  <div id="app">
+    <router-view />
   </div>
 </template>
 
 <script setup>
-import DataTable from "./components/DataTable.vue";
+// App组件现在使用router-view来渲染路由组件
 </script>
 
 <style>
-#hdty-tool-main {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  padding: 20px;
-  background-color: #f5f5f5;
-  min-height: 100vh;
-}
-
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+#app {
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
 }
 </style>
