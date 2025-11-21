@@ -33,6 +33,18 @@
           stripe
           style="width: 100%"
         >
+          <!-- 拖拽手柄列 -->
+          <el-table-column label="拖拽" width="60" align="center" fixed>
+            <template #default>
+              <el-icon
+                class="drag-handle"
+                style="cursor: move; font-size: 18px"
+              >
+                <Rank />
+              </el-icon>
+            </template>
+          </el-table-column>
+
           <el-table-column label="显示" width="80" align="center">
             <template #default="{ row }">
               <el-checkbox
@@ -105,14 +117,16 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onMounted, nextTick } from "vue";
+import Sortable from "sortablejs";
 import {
   Plus,
   Minus,
   RefreshLeft,
   Check,
   Top,
-  Bottom
+  Bottom,
+  Rank
 } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 
@@ -137,6 +151,49 @@ const visible = computed({
 const tableRef = ref(null);
 const tableData = ref([]);
 const originalColumns = ref([]);
+let sortableInstance = null; // Sortable实例
+
+/**
+ * 组件挂载后初始化拖拽
+ */
+onMounted(() => {
+  nextTick(() => {
+    initDragSort();
+  });
+});
+
+/**
+ * 初始化拖拽排序
+ */
+function initDragSort() {
+  const table = tableRef.value?.$el;
+  if (!table) return;
+
+  const tbody = table.querySelector(".el-table__body-wrapper tbody");
+  if (!tbody) return;
+
+  // 销毁之前的实例
+  if (sortableInstance) {
+    sortableInstance.destroy();
+  }
+
+  sortableInstance = Sortable.create(tbody, {
+    animation: 150,
+    handle: ".drag-handle", // 拖拽手柄
+    ghostClass: "sortable-ghost",
+    chosenClass: "sortable-chosen",
+    dragClass: "sortable-drag",
+    onEnd: (evt) => {
+      const { oldIndex, newIndex } = evt;
+      if (oldIndex !== newIndex) {
+        // 移动数据位置
+        const movedItem = tableData.value.splice(oldIndex, 1)[0];
+        tableData.value.splice(newIndex, 0, movedItem);
+        ElMessage.success("已调整列顺序");
+      }
+    }
+  });
+}
 
 /**
  * 监听列配置变化
@@ -317,9 +374,14 @@ function handleCancel() {
 <style scoped>
 /* 弹框内容包装器 - 限制最大高度并内部滚动 */
 .dialog-content-wrapper {
-  max-height: 80vh;
+  max-height: 70vh; /* 降低高度以适应margin-top */
   overflow-y: auto;
   padding: 2px;
+}
+
+/* 优化Element Plus弹框的margin-top */
+:deep(.el-dialog) {
+  margin-top: 5vh !important; /* 减小顶部边距 */
 }
 
 .column-config-container {
@@ -349,5 +411,30 @@ function handleCancel() {
 
 :deep(.el-table__row) {
   cursor: default;
+}
+
+/* 拖拽相关样式 */
+.drag-handle {
+  cursor: move !important;
+  color: #909399;
+  transition: color 0.3s;
+}
+
+.drag-handle:hover {
+  color: #409eff;
+}
+
+.sortable-ghost {
+  opacity: 0.4;
+  background: #f0f9ff;
+}
+
+.sortable-chosen {
+  background: #ecf5ff;
+}
+
+.sortable-drag {
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 </style>

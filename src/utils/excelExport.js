@@ -239,11 +239,15 @@ class UniversalExcelExporter {
    * @param {Object} styleConfig - 样式配置
    */
   applyCustomCellStyles(dataRow, rowIndex, cellStyles, styleConfig) {
+    // 调试输出
+    console.log("应用自定义单元格样式:", { rowIndex, cellStyles, styleConfig });
+
     const fontSize = styleConfig.fontSize || 11;
     dataRow.eachCell((cell, colNumber) => {
       const cellKey = `${rowIndex}_${colNumber - 1}`;
       const style = cellStyles[cellKey];
 
+      // 基础边框样式
       cell.border = {
         top: { style: "thin", color: { argb: "FFE0E0E0" } },
         left: { style: "thin", color: { argb: "FFE0E0E0" } },
@@ -252,24 +256,37 @@ class UniversalExcelExporter {
       };
 
       if (style) {
+        // 调试输出
+        console.log(`单元格 [${rowIndex}, ${colNumber - 1}] 样式:`, style);
+
+        // 应用背景色
         if (style.backgroundColor) {
+          const bgArgb = this._colorToArgb(style.backgroundColor);
+          console.log(`  背景色: ${style.backgroundColor} -> ${bgArgb}`);
           cell.fill = {
             type: "pattern",
             pattern: "solid",
-            fgColor: { argb: this._colorToArgb(style.backgroundColor) }
+            fgColor: { argb: bgArgb }
           };
         }
+
+        // 应用字体样式
+        const fontColor = style.color
+          ? this._colorToArgb(style.color)
+          : "FF000000";
+        console.log(`  字体颜色: ${style.color} -> ${fontColor}`);
+
         cell.font = {
           size: style.fontSize || fontSize,
-          color: style.color
-            ? { argb: this._colorToArgb(style.color) }
-            : { argb: "FF000000" },
+          color: { argb: fontColor },
           bold: style.fontWeight === "bold"
         };
       } else {
-        cell.font = { size: fontSize };
+        // 默认样式
+        cell.font = { size: fontSize, color: { argb: "FF000000" } };
       }
 
+      // 对齐方式
       cell.alignment = { vertical: "middle", horizontal: "center" };
     });
   }
@@ -289,13 +306,29 @@ class UniversalExcelExporter {
 
   /**
    * 颜色转换为ARGB格式
-   * @param {string} color - 颜色值,支持 #RGB, #RRGGBB, RRGGBB 等格式
+   * @param {string} color - 颜色值,支持 #RGB, #RRGGBB, RRGGBB, rgb(), rgba() 等格式
    * @returns {string} ARGB格式的颜色值 (例: FFFF0000 表示红色)
    */
   _colorToArgb(color) {
     if (!color) return "FFFFFFFF"; // 默认白色
 
-    // 移除 # 号
+    // 处理 rgb/rgba 格式
+    if (color.startsWith("rgb")) {
+      const match = color.match(/\d+/g);
+      if (match && match.length >= 3) {
+        const r = parseInt(match[0]).toString(16).padStart(2, "0");
+        const g = parseInt(match[1]).toString(16).padStart(2, "0");
+        const b = parseInt(match[2]).toString(16).padStart(2, "0");
+        const a = match[3]
+          ? Math.round(parseFloat(match[3]) * 255)
+              .toString(16)
+              .padStart(2, "0")
+          : "FF";
+        return (a + r + g + b).toUpperCase();
+      }
+    }
+
+    // 移除 # 号和 0x 前缀
     let hex = color.replace("#", "").replace("0x", "");
 
     // 处理三位简写 #RGB -> #RRGGBB
@@ -306,7 +339,7 @@ class UniversalExcelExporter {
         .join("");
     }
 
-    // 确保是 6 位频色值
+    // 确保是 6 位颜色值
     if (hex.length === 6) {
       hex = "FF" + hex; // 添加完全不透明的 Alpha 通道
     }
@@ -363,6 +396,24 @@ export async function exportMultiHeaderExcel(
   exportConfig = {},
   fileName = "统计数据"
 ) {
+  // 调试输出
+  console.log("导出配置:", exportConfig);
+  console.log("单元格样式:", exportConfig.cellStyles);
+
+  // 测试颜色转换
+  const testColors = [
+    "#409eff",
+    "rgb(64, 158, 255)",
+    "rgba(64, 158, 255, 0.5)"
+  ];
+  testColors.forEach((color) => {
+    console.log(
+      `颜色转换测试: ${color} -> ${new UniversalExcelExporter()._colorToArgb(
+        color
+      )}`
+    );
+  });
+
   const exporter = new UniversalExcelExporter();
   exporter
     .initWorkbook("鄂尔多斯市统计系统")

@@ -508,9 +508,14 @@ function handleDialogClose() {
 <style scoped>
 /* 弹框内容包装器 - 限制最大高度并内部滚动 */
 .dialog-content-wrapper {
-  max-height: 80vh;
+  max-height: 70vh; /* 降低高度以适应margin-top */
   overflow-y: auto;
   padding: 2px;
+}
+
+/* 优化Element Plus弹框的margin-top */
+:deep(.el-dialog) {
+  margin-top: 5vh !important; /* 减小顶部边距 */
 }
 
 .export-columns-section {
