@@ -155,8 +155,10 @@ class UniversalExcelExporter {
    * @param {Object} customStyle - 自定义样式
    */
   applyHeaderStyle(headerRow, customStyle = {}) {
-    const borderStyle = customStyle.borderStyle || "thin";
-    const borderColor = customStyle.borderColor || "FFD0D0D0";
+    const borderStyle =
+      customStyle.headerBorderStyle || customStyle.borderStyle || "thin";
+    const borderColor =
+      customStyle.headerBorderColor || customStyle.borderColor || "FFD0D0D0";
 
     headerRow.height = 30;
     headerRow.eachCell((cell) => {
@@ -193,8 +195,10 @@ class UniversalExcelExporter {
     if (!this.worksheet) throw new Error("请先添加工作表");
     const cellStyles = styleConfig.cellStyles || {};
     const uniformFont = styleConfig.uniformFont;
-    const borderStyle = styleConfig.borderStyle || "thin";
-    const borderColor = styleConfig.borderColor || "FFE0E0E0";
+    const borderStyle =
+      styleConfig.bodyBorderStyle || styleConfig.borderStyle || "thin";
+    const borderColor =
+      styleConfig.bodyBorderColor || styleConfig.borderColor || "FFE0E0E0";
 
     for (let i = 0; i < data.length; i++) {
       const rowData = data[i];
@@ -451,15 +455,19 @@ export async function exportMultiHeaderExcel(
       headerBgColor: exportConfig.headerBgColor || "4A90E2",
       headerTextColor: exportConfig.headerTextColor || "FFFFFF",
       headerFontSize: exportConfig.headerFontSize || 12,
-      borderStyle: exportConfig.borderStyle || "thin",
-      borderColor: exportConfig.borderColor || "FFD0D0D0"
+      headerBorderStyle:
+        exportConfig.headerBorderStyle || exportConfig.borderStyle || "thin",
+      headerBorderColor:
+        exportConfig.headerBorderColor || exportConfig.borderColor || "FFD0D0D0"
     })
     .addData(data, {
       fontSize: exportConfig.fontSize || 11,
       cellStyles: exportConfig.cellStyles || {},
       uniformFont: exportConfig.uniformFont,
-      borderStyle: exportConfig.borderStyle || "thin",
-      borderColor: exportConfig.borderColor || "FFE0E0E0"
+      bodyBorderStyle:
+        exportConfig.bodyBorderStyle || exportConfig.borderStyle || "thin",
+      bodyBorderColor:
+        exportConfig.bodyBorderColor || exportConfig.borderColor || "FFE0E0E0"
     })
     .setColumnWidth();
   await exporter.export(fileName);

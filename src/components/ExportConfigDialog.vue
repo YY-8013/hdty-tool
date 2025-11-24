@@ -87,31 +87,57 @@
 
             <el-divider content-position="left">边框设置</el-divider>
 
-            <el-row :gutter="20">
-              <el-col :span="12">
-                <el-form-item label="边框样式">
-                  <el-select v-model="exportConfig.borderStyle">
+            <el-form-item label="表头边框">
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-select
+                    v-model="exportConfig.headerBorderStyle"
+                    placeholder="边框样式"
+                  >
                     <el-option label="细实线" value="thin" />
                     <el-option label="中实线" value="medium" />
                     <el-option label="粗实线" value="thick" />
                     <el-option label="虚线" value="dashed" />
                     <el-option label="点线" value="dotted" />
                   </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="边框颜色">
+                </el-col>
+                <el-col :span="12">
                   <el-color-picker
-                    v-model="exportConfig.borderColor"
+                    v-model="exportConfig.headerBorderColor"
                     show-alpha
                     :predefine="presetColors"
                   />
-                </el-form-item>
-              </el-col>
-            </el-row>
+                </el-col>
+              </el-row>
+            </el-form-item>
+
+            <el-form-item label="数据边框">
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-select
+                    v-model="exportConfig.bodyBorderStyle"
+                    placeholder="边框样式"
+                  >
+                    <el-option label="细实线" value="thin" />
+                    <el-option label="中实线" value="medium" />
+                    <el-option label="粗实线" value="thick" />
+                    <el-option label="虚线" value="dashed" />
+                    <el-option label="点线" value="dotted" />
+                  </el-select>
+                </el-col>
+                <el-col :span="12">
+                  <el-color-picker
+                    v-model="exportConfig.bodyBorderColor"
+                    show-alpha
+                    :predefine="presetColors"
+                  />
+                </el-col>
+              </el-row>
+            </el-form-item>
+
             <div class="form-tip">
               <el-icon><InfoFilled /></el-icon>
-              <span>导出的Excel会默认给所有单元格添加边框</span>
+              <span>可分别配置表头和数据区域的边框样式和颜色</span>
             </div>
           </el-form>
         </el-tab-pane>
@@ -280,8 +306,10 @@ const exportConfig = ref({
   fontSize: 11,
   fontBold: false,
   fontColor: "#000000",
-  borderStyle: "thin",
-  borderColor: "#d0d0d0"
+  headerBorderStyle: "thin",
+  headerBorderColor: "#d0d0d0",
+  bodyBorderStyle: "thin",
+  bodyBorderColor: "#e0e0e0"
 });
 
 // 导出列数据
@@ -446,8 +474,12 @@ async function handleExport() {
       headerFontSize: props.globalStyle.headerFontSize || 12,
       cellStyles: exportConfig.value.useUniformFont ? {} : props.cellStyles,
       columnAlignments: collectColumnAlignments(exportColumnsData.value),
-      borderStyle: exportConfig.value.borderStyle || "thin",
-      borderColor: exportConfig.value.borderColor?.replace("#", "") || "d0d0d0"
+      headerBorderStyle: exportConfig.value.headerBorderStyle || "thin",
+      headerBorderColor:
+        exportConfig.value.headerBorderColor?.replace("#", "") || "d0d0d0",
+      bodyBorderStyle: exportConfig.value.bodyBorderStyle || "thin",
+      bodyBorderColor:
+        exportConfig.value.bodyBorderColor?.replace("#", "") || "e0e0e0"
     };
 
     // 如果使用统一字体
@@ -579,7 +611,7 @@ function handleDialogClose() {
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   padding: 10px;
-  max-height: 450px;
+  max-height: 400px;
   overflow-y: auto;
   margin-top: 15px;
 }
