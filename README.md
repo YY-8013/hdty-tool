@@ -49,40 +49,58 @@
 
 ## 技术栈
 
-- Vue 3 + Composition API
-- Vite 5.x
-- Element Plus 2.5
-- xlsx 0.18.5
-- Node.js 18+
+- **框架**: Vue 3.4.0 (Composition API)
+- **构建工具**: Vite 5.0.0
+- **UI组件库**: Element Plus 2.5.0
+- **状态管理**: Pinia 2.1.7
+- **路由**: Vue Router 4.2.5
+- **Excel处理**: ExcelJS 4.4.0
+- **拖拽**: Sortablejs 1.15.6
+- **Node.js**: 18+
 
 ## 项目结构
 
 ```
 hdty-tool/
+├── scripts/
+│   └── build.js                 # 自定义构建脚本
 ├── src/
 │   ├── components/
 │   │   ├── DataTable.vue           # 主表格组件
-│   │   ├── ColumnConfigDialog.vue  # 列配置对话框
+│   │   ├── ColumnConfigDialog.vue  # 列配置对话框(树形结构)
 │   │   ├── StyleConfigDialog.vue   # 样式配置对话框
 │   │   └── ExportConfigDialog.vue  # 导出配置对话框
+│   ├── views/
+│   │   └── Home.vue                # 首页视图
+│   ├── router/
+│   │   └── index.js                # 路由配置
+│   ├── stores/
+│   │   └── config.js               # 配置状态管理
 │   ├── mock/
-│   │   └── data.js                 # Mock数据(鄂尔多斯市各旗区统计数据)
+│   │   └── data.js                 # Mock数据
 │   ├── utils/
 │   │   └── excelExport.js          # Excel导出工具
 │   ├── App.vue
 │   └── main.js
+├── .env                        # 基础环境变量
+├── .env.development            # 开发环境变量
+├── .env.production             # 生产环境变量
+├── .env.test                   # 测试环境变量
 ├── index.html
-├── vite.config.js
-└── package.json
+├── vite.config.js              # Vite配置(已优化)
+├── package.json
+├── BUILD.md                    # 构建配置说明
+└── README.md
 ```
 
 ## 安装和运行
 
+### 基本命令
 ```bash
 # 安装依赖
 npm install
 
-# 启动开发服务器
+# 启动开发服务器 (端口: 3000)
 npm run dev
 
 # 构建生产版本
@@ -91,6 +109,35 @@ npm run build
 # 预览生产版本
 npm run preview
 ```
+
+### 多环境构建
+```bash
+# 开发环境构建(包含sourcemap)
+npm run build:dev
+
+# 测试环境构建
+npm run build:test
+
+# 生产环境构建
+npm run build:prod
+
+# 清理后构建
+npm run build:clean
+```
+
+### 自定义项目名构建
+```bash
+# 默认构建(输出: dist_版本号_时间戳)
+npm run build:custom
+
+# 指定项目名构建(输出: 项目名_版本号_时间戳)
+npm run build:custom -- --name=erdos-stats
+
+# 指定项目名和环境
+npm run build:custom -- --name=erdos-stats --mode=production
+```
+
+> 📝 **详细构建配置说明**: 请查看 [BUILD.md](./BUILD.md)
 
 ## 使用说明
 

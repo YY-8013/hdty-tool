@@ -162,17 +162,27 @@ class UniversalExcelExporter {
       customStyle.headerBorderColor || customStyle.borderColor || "#000000";
     borderColor = this._colorToArgb(borderColor);
 
+    // 处理表头背景色 - 使用_colorToArgb统一处理所有颜色格式
+    let headerBgColor = this._colorToArgb(
+      customStyle.headerBgColor || "#4A90E2"
+    );
+
+    // 处理表头文字颜色 - 使用_colorToArgb统一处理所有颜色格式
+    let headerTextColor = this._colorToArgb(
+      customStyle.headerTextColor || "#FFFFFF"
+    );
+
     headerRow.height = 30;
     headerRow.eachCell((cell) => {
       cell.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: customStyle.headerBgColor || "FF4A90E2" }
+        fgColor: { argb: headerBgColor }
       };
       cell.font = {
         bold: true,
         size: customStyle.headerFontSize || 12,
-        color: { argb: customStyle.headerTextColor || "FFFFFFFF" }
+        color: { argb: headerTextColor }
       };
       cell.alignment = {
         vertical: "middle",

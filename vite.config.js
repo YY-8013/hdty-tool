@@ -1,10 +1,115 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
+import { resolve } from "path";
 
-export default defineConfig({
-  plugins: [vue()],
-  server: {
-    port: 3000,
-    open: true
-  }
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => {
+  // 加载环境变量
+  const env = loadEnv(mode, process.cwd());
+
+  return {
+    plugins: [vue()],
+
+    // 路径别名配置
+    resolve: {
+      alias: {
+        "@": resolve(__dirname, "src"),
+        "@components": resolve(__dirname, "src/components"),
+        "@utils": resolve(__dirname, "src/utils"),
+        "@stores": resolve(__dirname, "src/stores"),
+        "@views": resolve(__dirname, "src/views"),
+        "@router": resolve(__dirname, "src/router"),
+        "@mock": resolve(__dirname, "src/mock")
+      }
+    },
+
+    // 开发服务器配置
+    server: {
+      port: 3000,
+      open: true,
+      host: true, // 允许外部访问
+      cors: true // 允许跨域
+      // 代理配置示例(如需要)
+      // proxy: {
+      //   '/api': {
+      //     target: 'http://localhost:8080',
+      //     changeOrigin: true,
+      //     rewrite: (path) => path.replace(/^\/api/, '')
+      //   }
+      // }
+    },
+
+    // 构建配置
+    build: {
+      // 输出目录
+      outDir: "dist",
+      // 静态资源目录
+      assetsDir: "assets",
+      // 小于此阈值的导入或引用资源将内联为 base64 编码(单位:字节)
+      assetsInlineLimit: 4096,
+      // 启用/禁用 CSS 代码拆分
+      cssCodeSplit: true,
+      // 构建后是否生成 source map 文件
+      sourcemap: mode === "development",
+      // chunk 大小警告的限制(单位:kbs)
+      chunkSizeWarningLimit: 1000,
+      // 自定义底层的 Rollup 打包配置
+      rollupOptions: {
+        output: {
+          // 静态资源分类打包
+          chunkFileNames: "assets/js/[name]-[hash].js",
+          entryFileNames: "assets/js/[name]-[hash].js",
+          assetFileNames: "assets/[ext]/[name]-[hash].[ext]",
+          // 分包策略
+          manualChunks(id) {
+            // 将 node_modules 中的代码单独打包
+            if (id.includes("node_modules")) {
+              // Element Plus 单独打包
+              if (id.includes("element-plus")) {
+                return "element-plus";
+              }
+              // ExcelJS 单独打包
+              if (id.includes("exceljs")) {
+                return "exceljs";
+              }
+              // Vue 全家桶打包
+              if (
+                id.includes("vue") ||
+                id.includes("pinia") ||
+                id.includes("vue-router")
+              ) {
+                return "vue-vendor";
+              }
+              // 其他第三方库
+              return "vendor";
+            }
+          }
+        }
+      },
+      // 压缩配置
+      minify: "terser",
+      terserOptions: {
+        compress: {
+          // 生产环境移除 console
+          drop_console: mode === "production",
+          drop_debugger: true
+        }
+      }
+    },
+
+    // 优化依赖预构建
+    optimizeDeps: {
+      include: ["vue", "vue-router", "pinia", "element-plus", "exceljs"]
+    },
+
+    // 全局常量定义
+    define: {
+      __APP_NAME__: JSON.stringify(
+        env.VITE_APP_NAME || "统计列表个性化配置工具"
+      ),
+      __APP_VERSION__: JSON.stringify(
+        process.env.npm_package_version || "0.0.1"
+      )
+    }
+  };
 });
