@@ -287,12 +287,13 @@ class UniversalExcelExporter {
     borderColor = "FFE0E0E0"
   ) {
     const fontSize = styleConfig.fontSize || 11;
-    // 处理全局数据行背景色和文字颜色
+
+    // 处理全局数据行背景色和文字颜色 - 直接使用_colorToArgb处理
     const defaultBgColor = styleConfig.rowBgColor
-      ? this._colorToArgb("#" + styleConfig.rowBgColor)
+      ? this._colorToArgb(styleConfig.rowBgColor)
       : null;
     const defaultTextColor = styleConfig.rowTextColor
-      ? this._colorToArgb("#" + styleConfig.rowTextColor)
+      ? this._colorToArgb(styleConfig.rowTextColor)
       : "FF000000";
 
     dataRow.eachCell((cell, colNumber) => {
@@ -440,7 +441,7 @@ class UniversalExcelExporter {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${fileName}_${new Date().getTime()}.xlsx`;
+    link.download = `${fileName}.xlsx`;
     link.click();
     window.URL.revokeObjectURL(url);
   }

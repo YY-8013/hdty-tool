@@ -498,9 +498,6 @@ async function handleExport() {
     }
 
     // 执行导出
-    console.log("=== 即将传入 exportMultiHeaderExcel 的列结构 ===");
-    console.log(JSON.stringify(exportColumns, null, 2));
-
     await exportMultiHeaderExcel(
       exportColumns,
       props.tableData,

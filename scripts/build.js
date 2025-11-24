@@ -1,6 +1,11 @@
 /**
- * 构建脚本 - 支持自定义项目名打包
- * 使用方式: node scripts/build.js --name=项目名 --mode=production
+ * 构建脚本 - 支持自定义项目名打包和自动版本号管理
+ * 使用方式:
+ *   node scripts/build.js                           (默认构建,自动递增patch版本号)
+ *   node scripts/build.js --name=项目名           (自定义项目名)
+ *   node scripts/build.js --mode=production        (指定构建模式)
+ *   node scripts/build.js --version=minor          (指定版本号递增类型: major/minor/patch)
+ *   node scripts/build.js --no-version             (不更新版本号)
  */
 
 import { execSync } from "child_process";
@@ -29,8 +34,29 @@ args.forEach((arg) => {
 // 配置
 const projectName = params.name || "hdty-tool";
 const mode = params.mode || "production";
+const versionType = params.version || "patch"; // major/minor/patch
+const skipVersion = params["no-version"] === true; // 是否跳过版本号更新
+
+// 更新版本号(如果需要)
+let version;
+if (!skipVersion) {
+  console.log("\n========================================");
+  console.log("🔄 正在更新版本号...");
+  console.log("========================================\n");
+
+  try {
+    execSync(`node scripts/version.js ${versionType}`, {
+      stdio: "inherit",
+      cwd: resolve(__dirname, "..")
+    });
+  } catch (error) {
+    console.error("⚠️  版本号更新失败，使用当前版本号继续构建");
+  }
+}
+
+// 读取最新版本号
 const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
-const version = JSON.parse(
+version = JSON.parse(
   readFileSync(resolve(__dirname, "../package.json"), "utf-8")
 ).version;
 

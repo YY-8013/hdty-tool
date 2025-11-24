@@ -1,6 +1,21 @@
 import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { resolve } from "path";
+import { readFileSync } from "fs";
+
+// 读取package.json中的版本号
+const getVersion = () => {
+  try {
+    const packageJson = JSON.parse(
+      readFileSync(resolve(process.cwd(), "package.json"), "utf-8")
+    );
+    return packageJson.version || "0.0.0";
+  } catch (error) {
+    return "0.0.0";
+  }
+};
+
+const version = getVersion();
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -56,10 +71,23 @@ export default defineConfig(({ mode }) => {
       // 自定义底层的 Rollup 打包配置
       rollupOptions: {
         output: {
-          // 静态资源分类打包
-          chunkFileNames: "assets/js/[name]-[hash].js",
-          entryFileNames: "assets/js/[name]-[hash].js",
-          assetFileNames: "assets/[ext]/[name]-[hash].[ext]",
+          // 静态资源分类打包 - 文件名携带版本号
+          chunkFileNames: `assets/js/[name].v${version}.[hash].js`,
+          entryFileNames: `assets/js/[name].v${version}.[hash].js`,
+          assetFileNames: (assetInfo) => {
+            // 根据文件类型分类
+            const extType = assetInfo.name.split(".").pop();
+            if (/css/i.test(extType)) {
+              return `assets/css/[name].v${version}.[hash].[ext]`;
+            }
+            if (/png|jpe?g|svg|gif|webp|ico/i.test(extType)) {
+              return `assets/img/[name].v${version}.[hash].[ext]`;
+            }
+            if (/woff2?|eot|ttf|otf/i.test(extType)) {
+              return `assets/fonts/[name].v${version}.[hash].[ext]`;
+            }
+            return `assets/[ext]/[name].v${version}.[hash].[ext]`;
+          },
           // 分包策略
           manualChunks(id) {
             // 将 node_modules 中的代码单独打包
@@ -86,14 +114,12 @@ export default defineConfig(({ mode }) => {
           }
         }
       },
-      // 压缩配置
-      minify: "terser",
-      terserOptions: {
-        compress: {
-          // 生产环境移除 console
-          drop_console: mode === "production",
-          drop_debugger: true
-        }
+      // 压缩配置 - 使用esbuild(默认,更快)
+      minify: "esbuild",
+      // esbuild 压缩配置
+      esbuild: {
+        // 生产环境移除 console 和 debugger
+        drop: mode === "production" ? ["console", "debugger"] : []
       }
     },
 
