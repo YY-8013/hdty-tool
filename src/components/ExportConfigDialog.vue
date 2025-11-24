@@ -88,7 +88,7 @@
             <el-divider content-position="left">边框设置</el-divider>
 
             <el-form-item label="表头边框">
-              <el-row :gutter="20">
+              <el-row :gutter="20" style="width: 240px">
                 <el-col :span="12">
                   <el-select
                     v-model="exportConfig.headerBorderStyle"
@@ -112,7 +112,7 @@
             </el-form-item>
 
             <el-form-item label="数据边框">
-              <el-row :gutter="20">
+              <el-row :gutter="20" style="width: 240px">
                 <el-col :span="12">
                   <el-select
                     v-model="exportConfig.bodyBorderStyle"

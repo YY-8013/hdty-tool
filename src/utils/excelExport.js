@@ -157,8 +157,10 @@ class UniversalExcelExporter {
   applyHeaderStyle(headerRow, customStyle = {}) {
     const borderStyle =
       customStyle.headerBorderStyle || customStyle.borderStyle || "thin";
-    const borderColor =
-      customStyle.headerBorderColor || customStyle.borderColor || "FFD0D0D0";
+    // 处理边框颜色,使用_colorToArgb方法转换为ARGB格式
+    let borderColor =
+      customStyle.headerBorderColor || customStyle.borderColor || "#000000";
+    borderColor = this._colorToArgb(borderColor);
 
     headerRow.height = 30;
     headerRow.eachCell((cell) => {
@@ -197,8 +199,10 @@ class UniversalExcelExporter {
     const uniformFont = styleConfig.uniformFont;
     const borderStyle =
       styleConfig.bodyBorderStyle || styleConfig.borderStyle || "thin";
-    const borderColor =
-      styleConfig.bodyBorderColor || styleConfig.borderColor || "FFE0E0E0";
+    // 处理边框颜色,使用_colorToArgb方法转换为ARGB格式
+    let borderColor =
+      styleConfig.bodyBorderColor || styleConfig.borderColor || "#000000";
+    borderColor = this._colorToArgb(borderColor);
 
     for (let i = 0; i < data.length; i++) {
       const rowData = data[i];
@@ -272,9 +276,6 @@ class UniversalExcelExporter {
     borderStyle = "thin",
     borderColor = "FFE0E0E0"
   ) {
-    // 调试输出
-    console.log("应用自定义单元格样式:", { rowIndex, cellStyles, styleConfig });
-
     const fontSize = styleConfig.fontSize || 11;
     dataRow.eachCell((cell, colNumber) => {
       const cellKey = `${rowIndex}_${colNumber - 1}`;
@@ -289,13 +290,9 @@ class UniversalExcelExporter {
       };
 
       if (style) {
-        // 调试输出
-        console.log(`单元格 [${rowIndex}, ${colNumber - 1}] 样式:`, style);
-
         // 应用背景色
         if (style.backgroundColor) {
           const bgArgb = this._colorToArgb(style.backgroundColor);
-          console.log(`  背景色: ${style.backgroundColor} -> ${bgArgb}`);
           cell.fill = {
             type: "pattern",
             pattern: "solid",
@@ -307,7 +304,6 @@ class UniversalExcelExporter {
         const fontColor = style.color
           ? this._colorToArgb(style.color)
           : "FF000000";
-        console.log(`  字体颜色: ${style.color} -> ${fontColor}`);
 
         cell.font = {
           size: style.fontSize || fontSize,
@@ -429,24 +425,6 @@ export async function exportMultiHeaderExcel(
   exportConfig = {},
   fileName = "统计数据"
 ) {
-  // 调试输出
-  console.log("导出配置:", exportConfig);
-  console.log("单元格样式:", exportConfig.cellStyles);
-
-  // 测试颜色转换
-  const testColors = [
-    "#409eff",
-    "rgb(64, 158, 255)",
-    "rgba(64, 158, 255, 0.5)"
-  ];
-  testColors.forEach((color) => {
-    console.log(
-      `颜色转换测试: ${color} -> ${new UniversalExcelExporter()._colorToArgb(
-        color
-      )}`
-    );
-  });
-
   const exporter = new UniversalExcelExporter();
   exporter
     .initWorkbook("鄂尔多斯市统计系统")
