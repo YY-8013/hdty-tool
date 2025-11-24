@@ -284,10 +284,10 @@ function convertToExportData(columns, parentId = "") {
   return columns.map((col, index) => {
     const id = parentId ? `${parentId}-${index}` : `exp-${index}`;
 
-    // 计算导出列宽(列表宽度的1/3,限制10-100)
-    let exportWidth = 30;
+    // 计算导出列宽(列表宽度的1/5,限制10-100)
+    let exportWidth = 20;
     if (col.width) {
-      exportWidth = Math.round(col.width / 3);
+      exportWidth = Math.round(col.width / 5);
       exportWidth = Math.max(10, Math.min(100, exportWidth));
     }
 
