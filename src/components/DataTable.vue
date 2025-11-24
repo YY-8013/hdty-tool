@@ -79,7 +79,7 @@
                 v-for="(col, colIndex) in flatColumns"
                 :key="colIndex"
                 :style="getCellStyle(rowIndex, colIndex)"
-                :class="['data-cell', { 'fixed-column': colIndex === 0 }]"
+                class="data-cell"
                 @dblclick="handleCellDblClick(rowIndex, colIndex)"
               >
                 {{ formatCellValue(row[col.prop], col.prop) }}
@@ -224,28 +224,30 @@ const headerRows = computed(() => {
  * 过滤掉隐藏的列,保留嵌套结构
  */
 const visibleColumnsList = computed(() => {
-  const result = [];
-
   function collectVisible(cols) {
+    const result = [];
     cols.forEach((col) => {
       if (col.visible !== false) {
         if (col.children && col.children.length > 0) {
-          const visibleCopy = { ...col, children: [] };
-          const childResult = [];
-          collectVisible(col.children);
+          // 递归收集子节点
+          const childResult = collectVisible(col.children);
           if (childResult.length > 0) {
-            visibleCopy.children = childResult;
-            result.push(visibleCopy);
+            // 有可见的子节点,保留父节点和子节点
+            result.push({
+              ...col,
+              children: childResult
+            });
           }
         } else {
+          // 叶子节点,直接添加
           result.push({ ...col });
         }
       }
     });
+    return result;
   }
 
-  collectVisible(currentColumns.value);
-  return result;
+  return collectVisible(currentColumns.value);
 });
 
 /**
@@ -506,20 +508,6 @@ function handleExport(exportConfig) {
 
 .data-row:hover {
   background-color: #f5f7fa;
-}
-
-/* 固定列样式 */
-.custom-table td:first-child,
-.custom-table th:first-child {
-  position: sticky;
-  left: 0;
-  z-index: 5;
-  background: white;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-}
-
-.header-row th:first-child {
-  z-index: 15 !important;
 }
 
 /* 滚动条样式 */

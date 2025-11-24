@@ -23,84 +23,47 @@
           </el-button>
         </div>
 
-        <el-table
-          ref="tableRef"
-          :data="tableData"
-          row-key="id"
+        <el-tree
+          ref="treeRef"
+          :data="treeData"
+          node-key="id"
           default-expand-all
-          :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
-          border
-          stripe
-          style="width: 100%"
+          draggable
+          :allow-drop="allowDrop"
+          :allow-drag="allowDrag"
+          @node-drop="handleNodeDrop"
+          class="column-tree"
         >
-          <!-- 拖拽手柄列 -->
-          <el-table-column label="拖拽" width="60" align="center" fixed>
-            <template #default>
-              <el-icon
-                class="drag-handle"
-                style="cursor: move; font-size: 18px"
-              >
-                <Rank />
-              </el-icon>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="显示" width="80" align="center">
-            <template #default="{ row }">
-              <el-checkbox
-                v-model="row.visible"
-                @change="handleVisibleChange(row)"
-              />
-            </template>
-          </el-table-column>
-
-          <el-table-column label="列名" prop="label" min-width="200">
-            <template #default="{ row }">
-              <span :style="{ paddingLeft: (row.level || 0) * 20 + 'px' }">
-                {{ row.label }}
-              </span>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="字段" prop="prop" width="150" />
-
-          <el-table-column label="列宽(px)" width="150" align="center">
-            <template #default="{ row }">
-              <el-input-number
-                v-if="row.prop"
-                v-model="row.width"
-                :min="60"
-                :max="500"
-                size="small"
-                controls-position="right"
-              />
-              <span v-else class="no-width">-</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="操作" width="120" align="center">
-            <template #default="{ row, $index }">
-              <el-button-group size="small">
-                <el-tooltip content="上移" placement="top">
-                  <el-button
-                    :disabled="$index === 0"
-                    @click="moveUp(row, $index)"
-                  >
-                    <el-icon><Top /></el-icon>
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip content="下移" placement="top">
-                  <el-button
-                    :disabled="$index === tableData.length - 1"
-                    @click="moveDown(row, $index)"
-                  >
-                    <el-icon><Bottom /></el-icon>
-                  </el-button>
-                </el-tooltip>
-              </el-button-group>
-            </template>
-          </el-table-column>
-        </el-table>
+          <template #default="{ node, data }">
+            <div class="tree-node-content">
+              <div class="node-info">
+                <el-checkbox
+                  v-model="data.visible"
+                  @change="handleVisibleChange(data)"
+                  class="node-checkbox"
+                  @click.stop
+                />
+                <span class="node-label">{{ data.label }}</span>
+                <span v-if="data.prop" class="node-prop"
+                  >({{ data.prop }})</span
+                >
+              </div>
+              <div class="node-actions">
+                <el-input-number
+                  v-if="data.prop"
+                  v-model="data.width"
+                  :min="60"
+                  :max="500"
+                  size="small"
+                  controls-position="right"
+                  placeholder="列宽"
+                  style="width: 120px"
+                  @click.stop
+                />
+              </div>
+            </div>
+          </template>
+        </el-tree>
       </div>
     </div>
 
@@ -117,17 +80,8 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, onMounted, nextTick } from "vue";
-import Sortable from "sortablejs";
-import {
-  Plus,
-  Minus,
-  RefreshLeft,
-  Check,
-  Top,
-  Bottom,
-  Rank
-} from "@element-plus/icons-vue";
+import { ref, watch, computed } from "vue";
+import { Plus, Minus, RefreshLeft, Check } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 const props = defineProps({
@@ -148,63 +102,20 @@ const visible = computed({
   set: (val) => emit("update:modelValue", val)
 });
 
-const tableRef = ref(null);
-const tableData = ref([]);
+const treeRef = ref(null);
+const treeData = ref([]);
 const originalColumns = ref([]);
-let sortableInstance = null; // Sortable实例
-
-/**
- * 组件挂载后初始化拖拽
- */
-onMounted(() => {
-  nextTick(() => {
-    initDragSort();
-  });
-});
-
-/**
- * 初始化拖拽排序
- */
-function initDragSort() {
-  const table = tableRef.value?.$el;
-  if (!table) return;
-
-  const tbody = table.querySelector(".el-table__body-wrapper tbody");
-  if (!tbody) return;
-
-  // 销毁之前的实例
-  if (sortableInstance) {
-    sortableInstance.destroy();
-  }
-
-  sortableInstance = Sortable.create(tbody, {
-    animation: 150,
-    handle: ".drag-handle", // 拖拽手柄
-    ghostClass: "sortable-ghost",
-    chosenClass: "sortable-chosen",
-    dragClass: "sortable-drag",
-    onEnd: (evt) => {
-      const { oldIndex, newIndex } = evt;
-      if (oldIndex !== newIndex) {
-        // 移动数据位置
-        const movedItem = tableData.value.splice(oldIndex, 1)[0];
-        tableData.value.splice(newIndex, 0, movedItem);
-        ElMessage.success("已调整列顺序");
-      }
-    }
-  });
-}
 
 /**
  * 监听列配置变化
- * 当传入新的列配置时,转换为表格数据格式
+ * 当传入新的列配置时,转换为树形数据格式
  */
 watch(
   () => props.columns,
   (newColumns) => {
     if (newColumns && newColumns.length > 0) {
       originalColumns.value = JSON.parse(JSON.stringify(newColumns));
-      tableData.value = convertToTableData(
+      treeData.value = convertToTreeData(
         JSON.parse(JSON.stringify(newColumns))
       );
     }
@@ -213,26 +124,24 @@ watch(
 );
 
 /**
- * 转换为表格数据格式
- * 将嵌套的列配置转换为带有层级和ID的表格数据
+ * 转换为树形数据格式
+ * 将嵌套的列配置转换为带有ID的树形数据
  */
-function convertToTableData(columns, level = 0, parentId = "") {
+function convertToTreeData(columns, parentId = "") {
   const result = [];
   columns.forEach((col, index) => {
-    const id = parentId ? `${parentId}-${index}` : `${index}`;
+    const id = parentId ? `${parentId}-${index}` : `col-${index}`;
     const node = {
       id,
       label: col.label,
       prop: col.prop,
       key: col.key,
       visible: col.visible !== false,
-      width: col.width || 120,
-      level,
-      hasChildren: !!(col.children && col.children.length > 0)
+      width: col.width || 120
     };
 
     if (col.children && col.children.length > 0) {
-      node.children = convertToTableData(col.children, level + 1, id);
+      node.children = convertToTreeData(col.children, id);
     }
 
     result.push(node);
@@ -266,42 +175,66 @@ function setChildrenVisible(children, visible) {
  * 全部展开
  */
 function expandAll() {
-  ElMessage.success("已展开所有节点");
+  // 遍历所有节点的ID并展开
+  const expandAllNodes = (nodes) => {
+    nodes.forEach((node) => {
+      if (treeRef.value) {
+        treeRef.value.store.nodesMap[node.id].expanded = true;
+      }
+      if (node.children && node.children.length > 0) {
+        expandAllNodes(node.children);
+      }
+    });
+  };
+
+  if (treeRef.value && treeData.value.length > 0) {
+    expandAllNodes(treeData.value);
+    ElMessage.success("已展开所有节点");
+  }
 }
 
 /**
  * 全部收起
  */
 function collapseAll() {
-  ElMessage.success("已收起所有节点");
-}
+  // 遍历所有节点的ID并收起
+  const collapseAllNodes = (nodes) => {
+    nodes.forEach((node) => {
+      if (treeRef.value) {
+        treeRef.value.store.nodesMap[node.id].expanded = false;
+      }
+      if (node.children && node.children.length > 0) {
+        collapseAllNodes(node.children);
+      }
+    });
+  };
 
-/**
- * 上移操作
- * 交换当前行与上一行的位置
- */
-function moveUp(row, index) {
-  if (index > 0) {
-    [tableData.value[index], tableData.value[index - 1]] = [
-      tableData.value[index - 1],
-      tableData.value[index]
-    ];
-    ElMessage.success("已上移");
+  if (treeRef.value && treeData.value.length > 0) {
+    collapseAllNodes(treeData.value);
+    ElMessage.success("已收起所有节点");
   }
 }
 
 /**
- * 下移操作
- * 交换当前行与下一行的位置
+ * 允许拖拽
  */
-function moveDown(row, index) {
-  if (index < tableData.value.length - 1) {
-    [tableData.value[index], tableData.value[index + 1]] = [
-      tableData.value[index + 1],
-      tableData.value[index]
-    ];
-    ElMessage.success("已下移");
-  }
+function allowDrag(draggingNode) {
+  return true;
+}
+
+/**
+ * 允许放置
+ */
+function allowDrop(draggingNode, dropNode, type) {
+  // 允许前后插入和内部插入
+  return true;
+}
+
+/**
+ * 节点拖拽结束处理
+ */
+function handleNodeDrop(draggingNode, dropNode, dropType, ev) {
+  ElMessage.success("已调整列顺序");
 }
 
 /**
@@ -320,7 +253,7 @@ async function handleReset() {
       }
     );
 
-    tableData.value = convertToTableData(
+    treeData.value = convertToTreeData(
       JSON.parse(JSON.stringify(originalColumns.value))
     );
     ElMessage.success("已重置列配置");
@@ -331,10 +264,10 @@ async function handleReset() {
 
 /**
  * 转换回列配置格式
- * 将表格数据转换回嵌套的列配置结构
+ * 将树形数据转换回嵌套的列配置结构
  */
-function convertToColumns(tableData) {
-  return tableData.map((node) => {
+function convertToColumns(treeData) {
+  return treeData.map((node) => {
     const col = {
       label: node.label,
       visible: node.visible,
@@ -354,10 +287,10 @@ function convertToColumns(tableData) {
 
 /**
  * 确认应用配置
- * 将表格数据转换后发送给父组件
+ * 将树形数据转换后发送给父组件
  */
 function handleConfirm() {
-  const newColumns = convertToColumns(tableData.value);
+  const newColumns = convertToColumns(treeData.value);
   emit("confirm", newColumns);
   visible.value = false;
   ElMessage.success("列配置已应用");
@@ -394,47 +327,70 @@ function handleCancel() {
   margin-bottom: 15px;
 }
 
-.no-width {
+/* 树形控件样式 */
+.column-tree {
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  padding: 10px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.tree-node-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  font-size: 14px;
+}
+
+.node-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.node-checkbox {
+  margin-right: 5px;
+}
+
+.node-label {
+  font-weight: 500;
+  color: #303133;
+}
+
+.node-prop {
   color: #909399;
   font-size: 12px;
+  font-style: italic;
+}
+
+.node-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+:deep(.el-tree-node__content) {
+  height: auto;
+  padding: 8px 0;
+  border-bottom: 1px solid #f5f7fa;
+}
+
+:deep(.el-tree-node__content:hover) {
+  background-color: #f5f7fa;
+}
+
+:deep(.el-tree-node.is-drop-inner > .el-tree-node__content) {
+  background-color: #ecf5ff;
+  border: 2px dashed #409eff;
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-}
-
-:deep(.el-table) {
-  font-size: 13px;
-}
-
-:deep(.el-table__row) {
-  cursor: default;
-}
-
-/* 拖拽相关样式 */
-.drag-handle {
-  cursor: move !important;
-  color: #909399;
-  transition: color 0.3s;
-}
-
-.drag-handle:hover {
-  color: #409eff;
-}
-
-.sortable-ghost {
-  opacity: 0.4;
-  background: #f0f9ff;
-}
-
-.sortable-chosen {
-  background: #ecf5ff;
-}
-
-.sortable-drag {
-  background: #fff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 </style>

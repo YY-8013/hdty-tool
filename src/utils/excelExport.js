@@ -155,6 +155,9 @@ class UniversalExcelExporter {
    * @param {Object} customStyle - 自定义样式
    */
   applyHeaderStyle(headerRow, customStyle = {}) {
+    const borderStyle = customStyle.borderStyle || "thin";
+    const borderColor = customStyle.borderColor || "FFD0D0D0";
+
     headerRow.height = 30;
     headerRow.eachCell((cell) => {
       cell.fill = {
@@ -173,10 +176,10 @@ class UniversalExcelExporter {
         wrapText: true
       };
       cell.border = {
-        top: { style: "thin", color: { argb: "FFD0D0D0" } },
-        left: { style: "thin", color: { argb: "FFD0D0D0" } },
-        bottom: { style: "thin", color: { argb: "FFD0D0D0" } },
-        right: { style: "thin", color: { argb: "FFD0D0D0" } }
+        top: { style: borderStyle, color: { argb: borderColor } },
+        left: { style: borderStyle, color: { argb: borderColor } },
+        bottom: { style: borderStyle, color: { argb: borderColor } },
+        right: { style: borderStyle, color: { argb: borderColor } }
       };
     });
   }
@@ -190,6 +193,9 @@ class UniversalExcelExporter {
     if (!this.worksheet) throw new Error("请先添加工作表");
     const cellStyles = styleConfig.cellStyles || {};
     const uniformFont = styleConfig.uniformFont;
+    const borderStyle = styleConfig.borderStyle || "thin";
+    const borderColor = styleConfig.borderColor || "FFE0E0E0";
+
     for (let i = 0; i < data.length; i++) {
       const rowData = data[i];
       const rowValues = this.flatColumns.map((col) => {
@@ -199,9 +205,16 @@ class UniversalExcelExporter {
       const dataRow = this.worksheet.addRow(rowValues);
       dataRow.height = 25;
       if (uniformFont) {
-        this.applyUniformFont(dataRow, uniformFont);
+        this.applyUniformFont(dataRow, uniformFont, borderStyle, borderColor);
       } else {
-        this.applyCustomCellStyles(dataRow, i, cellStyles, styleConfig);
+        this.applyCustomCellStyles(
+          dataRow,
+          i,
+          cellStyles,
+          styleConfig,
+          borderStyle,
+          borderColor
+        );
       }
       this.applyColumnAlignments(dataRow);
     }
@@ -212,8 +225,15 @@ class UniversalExcelExporter {
    * 应用统一字体样式
    * @param {Object} dataRow - 数据行对象
    * @param {Object} uniformFont - 统一字体配置
+   * @param {string} borderStyle - 边框样式
+   * @param {string} borderColor - 边框颜色
    */
-  applyUniformFont(dataRow, uniformFont) {
+  applyUniformFont(
+    dataRow,
+    uniformFont,
+    borderStyle = "thin",
+    borderColor = "FFE0E0E0"
+  ) {
     dataRow.eachCell((cell) => {
       cell.font = {
         name: uniformFont.family || "Microsoft YaHei",
@@ -222,10 +242,10 @@ class UniversalExcelExporter {
         color: { argb: this._colorToArgb(uniformFont.color || "#000000") }
       };
       cell.border = {
-        top: { style: "thin", color: { argb: "FFE0E0E0" } },
-        left: { style: "thin", color: { argb: "FFE0E0E0" } },
-        bottom: { style: "thin", color: { argb: "FFE0E0E0" } },
-        right: { style: "thin", color: { argb: "FFE0E0E0" } }
+        top: { style: borderStyle, color: { argb: borderColor } },
+        left: { style: borderStyle, color: { argb: borderColor } },
+        bottom: { style: borderStyle, color: { argb: borderColor } },
+        right: { style: borderStyle, color: { argb: borderColor } }
       };
       cell.alignment = { vertical: "middle", horizontal: "center" };
     });
@@ -237,8 +257,17 @@ class UniversalExcelExporter {
    * @param {number} rowIndex - 行索引
    * @param {Object} cellStyles - 单元格样式对象
    * @param {Object} styleConfig - 样式配置
+   * @param {string} borderStyle - 边框样式
+   * @param {string} borderColor - 边框颜色
    */
-  applyCustomCellStyles(dataRow, rowIndex, cellStyles, styleConfig) {
+  applyCustomCellStyles(
+    dataRow,
+    rowIndex,
+    cellStyles,
+    styleConfig,
+    borderStyle = "thin",
+    borderColor = "FFE0E0E0"
+  ) {
     // 调试输出
     console.log("应用自定义单元格样式:", { rowIndex, cellStyles, styleConfig });
 
@@ -249,10 +278,10 @@ class UniversalExcelExporter {
 
       // 基础边框样式
       cell.border = {
-        top: { style: "thin", color: { argb: "FFE0E0E0" } },
-        left: { style: "thin", color: { argb: "FFE0E0E0" } },
-        bottom: { style: "thin", color: { argb: "FFE0E0E0" } },
-        right: { style: "thin", color: { argb: "FFE0E0E0" } }
+        top: { style: borderStyle, color: { argb: borderColor } },
+        left: { style: borderStyle, color: { argb: borderColor } },
+        bottom: { style: borderStyle, color: { argb: borderColor } },
+        right: { style: borderStyle, color: { argb: borderColor } }
       };
 
       if (style) {
@@ -421,12 +450,16 @@ export async function exportMultiHeaderExcel(
     .buildDynamicHeaders(columns, {
       headerBgColor: exportConfig.headerBgColor || "4A90E2",
       headerTextColor: exportConfig.headerTextColor || "FFFFFF",
-      headerFontSize: exportConfig.headerFontSize || 12
+      headerFontSize: exportConfig.headerFontSize || 12,
+      borderStyle: exportConfig.borderStyle || "thin",
+      borderColor: exportConfig.borderColor || "FFD0D0D0"
     })
     .addData(data, {
       fontSize: exportConfig.fontSize || 11,
       cellStyles: exportConfig.cellStyles || {},
-      uniformFont: exportConfig.uniformFont
+      uniformFont: exportConfig.uniformFont,
+      borderStyle: exportConfig.borderStyle || "thin",
+      borderColor: exportConfig.borderColor || "FFE0E0E0"
     })
     .setColumnWidth();
   await exporter.export(fileName);

@@ -159,13 +159,13 @@ export const tableColList = [
             key: "01",
             label: "事业单位",
             prop: "SYDW_DICT_01",
-            width: 100
+            width: 120
           },
           {
             key: "02",
             label: "驻华外事外交机构",
             prop: "SYDW_DICT_02",
-            width: 150
+            width: 120
           }
         ]
       },
@@ -173,7 +173,7 @@ export const tableColList = [
         key: "02",
         label: "驻华外事外交机构",
         prop: "DWLB_DICT_02",
-        width: 150
+        width: 120
       },
       {
         key: "03",
@@ -197,19 +197,19 @@ export const tableColList = [
         key: "01",
         label: "Ⅰ级",
         prop: "FFDJ_DICT_01",
-        width: 100
+        width: 80
       },
       {
         key: "02",
         label: "Ⅱ级",
         prop: "FFDJ_DICT_02",
-        width: 100
+        width: 80
       },
       {
         key: "03",
         label: "Ⅲ级",
         prop: "FFDJ_DICT_03",
-        width: 100
+        width: 80
       }
     ]
   }

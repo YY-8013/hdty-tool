@@ -84,6 +84,35 @@
                 </el-col>
               </el-row>
             </template>
+
+            <el-divider content-position="left">边框设置</el-divider>
+
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="边框样式">
+                  <el-select v-model="exportConfig.borderStyle">
+                    <el-option label="细实线" value="thin" />
+                    <el-option label="中实线" value="medium" />
+                    <el-option label="粗实线" value="thick" />
+                    <el-option label="虚线" value="dashed" />
+                    <el-option label="点线" value="dotted" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="边框颜色">
+                  <el-color-picker
+                    v-model="exportConfig.borderColor"
+                    show-alpha
+                    :predefine="presetColors"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <div class="form-tip">
+              <el-icon><InfoFilled /></el-icon>
+              <span>导出的Excel会默认给所有单元格添加边框</span>
+            </div>
           </el-form>
         </el-tab-pane>
 
@@ -114,77 +143,68 @@
               </el-button>
             </div>
 
-            <!-- 使用层级表格展示 -->
-            <el-table
+            <!-- 使用树形控件展示 -->
+            <el-tree
+              ref="exportTreeRef"
               :data="exportColumnsData"
-              row-key="id"
+              node-key="id"
               default-expand-all
-              :tree-props="{ children: 'children' }"
-              border
-              style="width: 100%; margin-top: 15px"
-              :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+              class="export-column-tree"
             >
-              <el-table-column label="导出" width="80" align="center" fixed>
-                <template #default="{ row }">
-                  <el-checkbox
-                    v-if="row.prop"
-                    v-model="row.export"
-                    @change="handleExportChange(row)"
-                  />
-                  <span v-else>-</span>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="列名" prop="label" min-width="200">
-                <template #default="{ row }">
-                  <span
-                    :style="{ fontWeight: row.children ? 'bold' : 'normal' }"
-                  >
-                    {{ row.label }}
-                  </span>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="列宽" width="140" align="center">
-                <template #default="{ row }">
-                  <el-input-number
-                    v-if="row.prop && row.export"
-                    v-model="row.exportWidth"
-                    :min="10"
-                    :max="100"
-                    size="small"
-                    controls-position="right"
-                    style="width: 120px"
-                  />
-                  <span v-else class="no-config">-</span>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="对齐方式" width="160" align="center">
-                <template #default="{ row }">
-                  <el-select
-                    v-if="row.prop && row.export"
-                    v-model="row.alignment"
-                    size="small"
-                    style="width: 130px"
-                  >
-                    <el-option label="居左" value="left">
-                      <el-icon><Back /></el-icon>
-                      居左
-                    </el-option>
-                    <el-option label="居中" value="center">
-                      <el-icon><Minus /></el-icon>
-                      居中
-                    </el-option>
-                    <el-option label="居右" value="right">
-                      <el-icon><Right /></el-icon>
-                      居右
-                    </el-option>
-                  </el-select>
-                  <span v-else class="no-config">-</span>
-                </template>
-              </el-table-column>
-            </el-table>
+              <template #default="{ node, data }">
+                <div class="export-tree-node">
+                  <div class="export-node-info">
+                    <el-checkbox
+                      v-if="data.prop"
+                      v-model="data.export"
+                      @change="handleExportChange(data)"
+                      @click.stop
+                    />
+                    <span v-else class="no-checkbox">-</span>
+                    <span
+                      class="export-node-label"
+                      :style="{ fontWeight: data.children ? 'bold' : 'normal' }"
+                    >
+                      {{ data.label }}
+                    </span>
+                  </div>
+                  <div class="export-node-actions">
+                    <el-input-number
+                      v-if="data.prop && data.export"
+                      v-model="data.exportWidth"
+                      :min="10"
+                      :max="100"
+                      size="small"
+                      controls-position="right"
+                      placeholder="列宽"
+                      style="width: 110px; margin-right: 8px"
+                      @click.stop
+                    />
+                    <el-select
+                      v-if="data.prop && data.export"
+                      v-model="data.alignment"
+                      size="small"
+                      placeholder="对齐"
+                      style="width: 100px"
+                      @click.stop
+                    >
+                      <el-option label="居左" value="left">
+                        <el-icon><Back /></el-icon>
+                        居左
+                      </el-option>
+                      <el-option label="居中" value="center">
+                        <el-icon><Minus /></el-icon>
+                        居中
+                      </el-option>
+                      <el-option label="居右" value="right">
+                        <el-icon><Right /></el-icon>
+                        居右
+                      </el-option>
+                    </el-select>
+                  </div>
+                </div>
+              </template>
+            </el-tree>
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -259,7 +279,9 @@ const exportConfig = ref({
   fontFamily: "Microsoft YaHei",
   fontSize: 11,
   fontBold: false,
-  fontColor: "#000000"
+  fontColor: "#000000",
+  borderStyle: "thin",
+  borderColor: "#d0d0d0"
 });
 
 // 导出列数据
@@ -284,10 +306,10 @@ function convertToExportData(columns, parentId = "") {
   return columns.map((col, index) => {
     const id = parentId ? `${parentId}-${index}` : `exp-${index}`;
 
-    // 计算导出列宽(列表宽度的1/5,限制10-100)
+    // 计算导出列宽(列表宽度的1/6,限制10-100)
     let exportWidth = 20;
     if (col.width) {
-      exportWidth = Math.round(col.width / 5);
+      exportWidth = Math.round(col.width / 6);
       exportWidth = Math.max(10, Math.min(100, exportWidth));
     }
 
@@ -391,6 +413,17 @@ async function handleExport() {
   // 收集要导出的列
   const exportColumns = collectExportColumns(exportColumnsData.value);
 
+  // 调试输出:查看收集到的导出列结构
+  console.log("=== 导出列数据结构 ===");
+  console.log(
+    "exportColumnsData.value:",
+    JSON.stringify(exportColumnsData.value, null, 2)
+  );
+  console.log(
+    "collectExportColumns 结果:",
+    JSON.stringify(exportColumns, null, 2)
+  );
+
   if (exportColumns.length === 0) {
     ElMessage.warning("请至少选择一列进行导出");
     return;
@@ -412,7 +445,9 @@ async function handleExport() {
       headerTextColor: props.globalStyle.headerTextColor?.replace("#", ""),
       headerFontSize: props.globalStyle.headerFontSize || 12,
       cellStyles: exportConfig.value.useUniformFont ? {} : props.cellStyles,
-      columnAlignments: collectColumnAlignments(exportColumnsData.value)
+      columnAlignments: collectColumnAlignments(exportColumnsData.value),
+      borderStyle: exportConfig.value.borderStyle || "thin",
+      borderColor: exportConfig.value.borderColor?.replace("#", "") || "d0d0d0"
     };
 
     // 如果使用统一字体
@@ -431,6 +466,9 @@ async function handleExport() {
     }
 
     // 执行导出
+    console.log("=== 即将传入 exportMultiHeaderExcel 的列结构 ===");
+    console.log(JSON.stringify(exportColumns, null, 2));
+
     await exportMultiHeaderExcel(
       exportColumns,
       props.tableData,
@@ -453,8 +491,10 @@ function collectExportColumns(columns) {
   const result = [];
 
   columns.forEach((col) => {
+    // 如果有子节点,递归处理
     if (col.children && col.children.length > 0) {
       const childColumns = collectExportColumns(col.children);
+      // 只要有子列被选中,父节点就要保留(保持层级结构)
       if (childColumns.length > 0) {
         result.push({
           label: col.label,
@@ -462,7 +502,9 @@ function collectExportColumns(columns) {
           children: childColumns
         });
       }
-    } else if (col.export && col.prop) {
+    }
+    // 如果是叶子节点且被勾选导出
+    else if (col.export && col.prop) {
       result.push({
         label: col.label,
         prop: col.prop,
@@ -529,6 +571,60 @@ function handleDialogClose() {
 .actions-bar {
   display: flex;
   gap: 10px;
+  margin-bottom: 15px;
+}
+
+/* 导出列树形控件样式 */
+.export-column-tree {
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  padding: 10px;
+  max-height: 450px;
+  overflow-y: auto;
+  margin-top: 15px;
+}
+
+.export-tree-node {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.export-node-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.export-node-label {
+  color: #303133;
+}
+
+.no-checkbox {
+  display: inline-block;
+  width: 14px;
+  text-align: center;
+  color: #c0c4cc;
+}
+
+.export-node-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+:deep(.export-column-tree .el-tree-node__content) {
+  height: auto;
+  padding: 4px 0;
+  border-bottom: 1px solid #f5f7fa;
+}
+
+:deep(.export-column-tree .el-tree-node__content:hover) {
+  background-color: #f5f7fa;
 }
 
 .form-tip {
