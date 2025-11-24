@@ -287,6 +287,14 @@ class UniversalExcelExporter {
     borderColor = "FFE0E0E0"
   ) {
     const fontSize = styleConfig.fontSize || 11;
+    // 处理全局数据行背景色和文字颜色
+    const defaultBgColor = styleConfig.rowBgColor
+      ? this._colorToArgb("#" + styleConfig.rowBgColor)
+      : null;
+    const defaultTextColor = styleConfig.rowTextColor
+      ? this._colorToArgb("#" + styleConfig.rowTextColor)
+      : "FF000000";
+
     dataRow.eachCell((cell, colNumber) => {
       const cellKey = `${rowIndex}_${colNumber - 1}`;
       const style = cellStyles[cellKey];
@@ -300,7 +308,7 @@ class UniversalExcelExporter {
       };
 
       if (style) {
-        // 应用背景色
+        // 应用背景色(优先使用单元格样式,其次使用全局样式)
         if (style.backgroundColor) {
           const bgArgb = this._colorToArgb(style.backgroundColor);
           cell.fill = {
@@ -308,12 +316,18 @@ class UniversalExcelExporter {
             pattern: "solid",
             fgColor: { argb: bgArgb }
           };
+        } else if (defaultBgColor) {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: defaultBgColor }
+          };
         }
 
         // 应用字体样式
         const fontColor = style.color
           ? this._colorToArgb(style.color)
-          : "FF000000";
+          : defaultTextColor;
 
         cell.font = {
           size: style.fontSize || fontSize,
@@ -321,8 +335,18 @@ class UniversalExcelExporter {
           bold: style.fontWeight === "bold"
         };
       } else {
-        // 默认样式
-        cell.font = { size: fontSize, color: { argb: "FF000000" } };
+        // 没有单元格样式,使用全局样式
+        if (defaultBgColor) {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: defaultBgColor }
+          };
+        }
+        cell.font = {
+          size: fontSize,
+          color: { argb: defaultTextColor }
+        };
       }
 
       // 对齐方式
@@ -452,6 +476,8 @@ export async function exportMultiHeaderExcel(
       fontSize: exportConfig.fontSize || 11,
       cellStyles: exportConfig.cellStyles || {},
       uniformFont: exportConfig.uniformFont,
+      rowBgColor: exportConfig.rowBgColor, // 全局数据行背景色
+      rowTextColor: exportConfig.rowTextColor, // 全局数据行文字颜色
       bodyBorderStyle:
         exportConfig.bodyBorderStyle || exportConfig.borderStyle || "thin",
       bodyBorderColor:
